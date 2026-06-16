@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   STATUS_STYLES,
+  formatDuration,
   readFileAsDataUrl,
   verifyLabel,
   warningStatus,
-  type VerifyResult,
+  type TimedVerifyResult,
   type WarningStatus,
 } from "@/lib/verify-label-client";
-import { WarningBlock } from "./single-label-mode";
+import { DurationBadge, WarningBlock } from "./single-label-mode";
 
 const MAX_BYTES = 8 * 1024 * 1024;
 const MAX_FILES = 500;
@@ -20,9 +21,16 @@ type BatchItem = {
   file: File;
   previewUrl: string; // object URL for thumbnail
   status: ItemStatus;
-  result?: VerifyResult;
+  result?: TimedVerifyResult;
   error?: string;
 };
+
+function describeBatchRejection(file: File): string | null {
+  if (!file.type.startsWith("image/")) return "not an image";
+  if (!/^image\/(png|jpe?g)$/i.test(file.type)) return "not JPG/PNG";
+  if (file.size > MAX_BYTES) return "over 8 MB";
+  return null;
+}
 
 export function BatchMode() {
   const [items, setItems] = useState<BatchItem[]>([]);
