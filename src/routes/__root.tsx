@@ -121,6 +121,17 @@ function RootShell({ children }: { children: ReactNode }) {
       </head>
       <body>
         {children}
+        <footer className="py-4 text-center text-xs text-muted-foreground/50">
+          © 2026{" "}
+          <a
+            href="https://www.hellojusto.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-muted-foreground transition-colors"
+          >
+            Justo Garcia · Author/Designer
+          </a>
+        </footer>
         <Scripts />
       </body>
     </html>
