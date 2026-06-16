@@ -237,25 +237,28 @@ export function SingleLabelMode() {
         <TooltipProvider>
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
-              <Button
-                type="button"
-                size="lg"
-                onClick={onVerify}
-                disabled={submitting || !imagePreview}
-                className="px-8 font-semibold shadow-md"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
-                    Verifying label…
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="h-4 w-4 mr-2" aria-hidden="true" />
-                    Verify Label
-                  </>
-                )}
-              </Button>
+              <span tabIndex={!imagePreview ? 0 : -1} className="inline-block">
+                <Button
+                  type="button"
+                  size="lg"
+                  onClick={onVerify}
+                  disabled={submitting || !imagePreview}
+                  className="px-8 font-semibold shadow-md"
+                  style={!imagePreview ? { pointerEvents: "none" } : undefined}
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
+                      Verifying label…
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 mr-2" aria-hidden="true" />
+                      Verify Label
+                    </>
+                  )}
+                </Button>
+              </span>
             </TooltipTrigger>
             {!imagePreview && (
               <TooltipContent>
