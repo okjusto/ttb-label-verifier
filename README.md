@@ -2,7 +2,7 @@
 
 An AI-powered prototype that helps alcohol-beverage compliance agents verify label artwork against application data. Built as a standalone proof-of-concept in response to the TTB Label Compliance discovery brief.
 
-> **About this project** — Built by Justo Garcia as a take-home for an employment evaluation. Shared for review purposes; happy to discuss licensing or reuse if it's useful beyond the evaluation.
+> **About this project** — Built by Justo Garcia as a take-home evaluation for the Department of the Treasury.
 
 ---
 
