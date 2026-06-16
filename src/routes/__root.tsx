@@ -126,8 +126,23 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <>
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+        <footer className="w-full border-t border-border/40 py-3 text-center">
+          <p className="text-xs text-muted-foreground">
+            &copy; 2026{" "}
+            <a
+              href="https://www.hellojusto.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:text-foreground transition-colors"
+            >
+              Justo Garcia · Author/Designer
+            </a>
+          </p>
+        </footer>
+      </>
     </QueryClientProvider>
   );
 }
