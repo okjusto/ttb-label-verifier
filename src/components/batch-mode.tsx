@@ -418,6 +418,27 @@ function BatchRow({
           <Dim status={item.status} />
         )}
       </td>
+      <td className="p-3 whitespace-nowrap">
+        {item.result ? (
+          <span
+            className={
+              "font-mono text-sm font-semibold " +
+              (item.result.durationMs < 5000
+                ? "text-success"
+                : "text-warning-foreground")
+            }
+            title={
+              item.result.durationMs < 5000
+                ? "Within 5-second target"
+                : "Above 5-second target"
+            }
+          >
+            {formatDuration(item.result.durationMs)}
+          </span>
+        ) : (
+          <Dim status={item.status} />
+        )}
+      </td>
       <td className="p-3">
         <StatusPill status={item.status} error={item.error} />
       </td>
