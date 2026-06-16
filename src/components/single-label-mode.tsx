@@ -196,14 +196,6 @@ export function SingleLabelMode() {
                   JPG or PNG, up to 8 MB
                 </p>
               </div>
-              <Input
-                ref={fileInputRef}
-                id="label-file"
-                type="file"
-                accept="image/png,image/jpeg"
-                className="sr-only"
-                onChange={(e) => void handleFiles(e.target.files)}
-              />
             </label>
           ) : (
             <div className="space-y-3">
@@ -218,7 +210,7 @@ export function SingleLabelMode() {
                 <span className="truncate text-sm text-muted-foreground">
                   {imageFile?.name}
                 </span>
-              <Button
+                <Button
                   type="button"
                   variant="outline"
                   size="sm"
@@ -230,6 +222,14 @@ export function SingleLabelMode() {
               </div>
             </div>
           )}
+          <Input
+            ref={fileInputRef}
+            id="label-file"
+            type="file"
+            accept="image/png,image/jpeg"
+            className="sr-only"
+            onChange={(e) => void handleFiles(e.target.files)}
+          />
         </section>
       </div>
 
