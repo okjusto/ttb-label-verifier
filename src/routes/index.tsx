@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useRef, useState } from "react";
-import { verifyLabel, type VerifyLabelResult } from "@/lib/verify-label.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -30,6 +29,22 @@ type FormState = {
   netContents: string;
 };
 
+type VerifyResult = {
+  extracted: {
+    brandName: string;
+    classType: string;
+    abv: string;
+    netContents: string;
+    warningText: string;
+  };
+  warningChecks: {
+    exactWordingPresent: boolean;
+    isAllCaps: boolean;
+    isBold: boolean;
+  };
+  imageQuality: "good" | "poor" | "unreadable" | string;
+};
+
 const MAX_BYTES = 8 * 1024 * 1024; // 8MB
 
 function readFileAsDataUrl(file: File): Promise<string> {
@@ -42,7 +57,6 @@ function readFileAsDataUrl(file: File): Promise<string> {
 }
 
 function LabelVerifierPage() {
-  const runVerify = useServerFn(verifyLabel);
   const [form, setForm] = useState<FormState>({
     brandName: "",
     classType: "",
@@ -54,7 +68,7 @@ function LabelVerifierPage() {
   const [dragOver, setDragOver] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<VerifyLabelResult | null>(null);
+  const [result, setResult] = useState<VerifyResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleField = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -102,8 +116,20 @@ function LabelVerifierPage() {
     }
     setSubmitting(true);
     try {
-      const r = await runVerify({ data: { ...form, imageDataUrl: imagePreview } });
-      setResult(r);
+      const { data, error: fnError } = await supabase.functions.invoke("verify-label", {
+        body: { ...form, imageBase64: imagePreview },
+      });
+      if (fnError) {
+        const msg =
+          (data as any)?.error ??
+          fnError.message ??
+          "Verification failed. Please try again.";
+        throw new Error(msg);
+      }
+      if (!data || typeof data !== "object" || !(data as any).extracted) {
+        throw new Error("Verification service returned an unexpected response.");
+      }
+      setResult(data as VerifyResult);
     } catch (e: any) {
       setError(e?.message ?? "Something went wrong. Please try again.");
     } finally {
@@ -278,7 +304,7 @@ function LabelVerifierPage() {
             <p className="text-lg">Analyzing label image. This may take a few seconds…</p>
           )}
 
-          {result && <ResultView result={result} />}
+          {result && <ResultView result={result} submitted={form} />}
         </section>
       </main>
     </div>
@@ -315,92 +341,143 @@ function FormField({
   );
 }
 
-function ResultView({ result }: { result: VerifyLabelResult }) {
-  const isPass = result.overall === "pass";
+function ResultView({
+  result,
+  submitted,
+}: {
+  result: VerifyResult;
+  submitted: FormState;
+}) {
+  const fields: Array<{ key: keyof FormState; label: string }> = [
+    { key: "brandName", label: "Brand Name" },
+    { key: "classType", label: "Class/Type Designation" },
+    { key: "abv", label: "Alcohol Content (ABV)" },
+    { key: "netContents", label: "Net Contents" },
+  ];
+
+  const quality = result.imageQuality;
+  const qualityCls =
+    quality === "good"
+      ? "border-success bg-success/10 text-success"
+      : quality === "poor"
+      ? "border-warning bg-warning/10 text-warning-foreground"
+      : "border-destructive bg-destructive/10 text-destructive";
+
   return (
     <div className="space-y-6">
-      <div
-        className={[
-          "rounded-lg border-4 p-5",
-          isPass
-            ? "border-success bg-success/10 text-success"
-            : "border-warning bg-warning/10 text-warning-foreground",
-        ].join(" ")}
-      >
+      <div className={`rounded-lg border-4 p-5 ${qualityCls}`}>
         <div className="text-2xl font-bold">
-          {isPass ? "PASS — Label matches application" : "NEEDS REVIEW"}
+          Image quality: {String(quality).toUpperCase()}
         </div>
-        {result.summary && (
-          <p className="mt-2 text-lg text-foreground">{result.summary}</p>
-        )}
       </div>
 
       <div>
-        <h3 className="text-xl font-bold mb-3">Field-by-field check</h3>
+        <h3 className="text-xl font-bold mb-3">Extracted from the label</h3>
         <ul className="space-y-3">
-          {result.fields.map((f) => (
-            <li
-              key={f.field}
-              className="rounded-md border-2 border-border bg-background p-4"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="text-lg font-semibold">{f.label}</div>
-                <VerdictBadge verdict={f.verdict} />
-              </div>
-              <dl className="mt-3 grid gap-2 sm:grid-cols-2 text-base">
-                <div>
-                  <dt className="font-semibold text-muted-foreground">Submitted</dt>
-                  <dd className="text-foreground break-words">
-                    {f.submitted || <em className="text-muted-foreground">(blank)</em>}
-                  </dd>
+          {fields.map((f) => {
+            const sub = submitted[f.key];
+            const got = (result.extracted as any)[f.key] as string;
+            const match =
+              sub && got && sub.trim().toLowerCase() === got.trim().toLowerCase();
+            return (
+              <li
+                key={f.key}
+                className="rounded-md border-2 border-border bg-background p-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="text-lg font-semibold">{f.label}</div>
+                  {sub ? (
+                    <MatchBadge match={Boolean(match)} hasValue={Boolean(got)} />
+                  ) : null}
                 </div>
-                <div>
-                  <dt className="font-semibold text-muted-foreground">On the label</dt>
-                  <dd className="text-foreground break-words">
-                    {f.foundOnLabel || (
-                      <em className="text-muted-foreground">Not found</em>
-                    )}
-                  </dd>
-                </div>
-              </dl>
-              {f.note && <p className="mt-2 text-base">{f.note}</p>}
-            </li>
-          ))}
+                <dl className="mt-3 grid gap-2 sm:grid-cols-2 text-base">
+                  <div>
+                    <dt className="font-semibold text-muted-foreground">Submitted</dt>
+                    <dd className="text-foreground break-words">
+                      {sub || <em className="text-muted-foreground">(blank)</em>}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold text-muted-foreground">On the label</dt>
+                    <dd className="text-foreground break-words">
+                      {got || <em className="text-muted-foreground">Not found</em>}
+                    </dd>
+                  </div>
+                </dl>
+              </li>
+            );
+          })}
         </ul>
       </div>
 
-      {result.observations.length > 0 && (
-        <div>
-          <h3 className="text-xl font-bold mb-3">Other observations</h3>
-          <ul className="list-disc pl-6 space-y-2 text-lg">
-            {result.observations.map((o, i) => (
-              <li key={i}>{o}</li>
-            ))}
+      <div>
+        <h3 className="text-xl font-bold mb-3">Government warning</h3>
+        <div className="rounded-md border-2 border-border bg-background p-4 space-y-4">
+          <div>
+            <div className="font-semibold text-muted-foreground mb-1">
+              Warning text on the label
+            </div>
+            <p className="whitespace-pre-wrap text-base">
+              {result.extracted.warningText || (
+                <em className="text-muted-foreground">Not found on label</em>
+              )}
+            </p>
+          </div>
+          <ul className="space-y-2 text-lg">
+            <CheckLine
+              ok={result.warningChecks.exactWordingPresent}
+              label="Mandatory TTB wording is present word-for-word"
+            />
+            <CheckLine
+              ok={result.warningChecks.isAllCaps}
+              label={'"GOVERNMENT WARNING:" appears in all caps'}
+            />
+            <CheckLine
+              ok={result.warningChecks.isBold}
+              label={'"GOVERNMENT WARNING:" appears in bold'}
+            />
           </ul>
         </div>
-      )}
+      </div>
     </div>
   );
 }
 
-function VerdictBadge({ verdict }: { verdict: "match" | "mismatch" | "not_found" }) {
-  const map = {
-    match: { label: "MATCH", cls: "bg-success text-success-foreground border-success" },
-    mismatch: {
-      label: "MISMATCH",
-      cls: "bg-destructive text-destructive-foreground border-destructive",
-    },
-    not_found: {
-      label: "NOT FOUND",
-      cls: "bg-warning text-warning-foreground border-warning",
-    },
-  } as const;
-  const { label, cls } = map[verdict];
-  return (
-    <span
-      className={`inline-block rounded-md border-2 px-3 py-1 text-base font-bold ${cls}`}
-    >
-      {label}
+function MatchBadge({ match, hasValue }: { match: boolean; hasValue: boolean }) {
+  if (!hasValue) {
+    return (
+      <span className="inline-block rounded-md border-2 px-3 py-1 text-base font-bold bg-warning text-warning-foreground border-warning">
+        NOT FOUND
+      </span>
+    );
+  }
+  return match ? (
+    <span className="inline-block rounded-md border-2 px-3 py-1 text-base font-bold bg-success text-success-foreground border-success">
+      MATCH
     </span>
+  ) : (
+    <span className="inline-block rounded-md border-2 px-3 py-1 text-base font-bold bg-destructive text-destructive-foreground border-destructive">
+      MISMATCH
+    </span>
+  );
+}
+
+function CheckLine({ ok, label }: { ok: boolean; label: string }) {
+  return (
+    <li className="flex items-start gap-3">
+      <span
+        aria-hidden="true"
+        className={`mt-1 inline-flex h-6 w-6 items-center justify-center rounded-full border-2 text-sm font-bold ${
+          ok
+            ? "bg-success text-success-foreground border-success"
+            : "bg-destructive text-destructive-foreground border-destructive"
+        }`}
+      >
+        {ok ? "✓" : "✗"}
+      </span>
+      <span>
+        <strong>{ok ? "PASS" : "FAIL"}</strong> — {label}
+      </span>
+    </li>
   );
 }
