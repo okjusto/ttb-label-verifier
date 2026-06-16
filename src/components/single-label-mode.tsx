@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CheckCircle2, Upload, Loader2, Timer, X } from "lucide-react";
+import { ArrowUp, CheckCircle2, Upload, Loader2, Timer, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
