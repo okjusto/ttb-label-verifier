@@ -218,13 +218,13 @@ export function SingleLabelMode() {
                 <span className="truncate text-sm text-muted-foreground">
                   {imageFile?.name}
                 </span>
-                <Button
+              <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={clearImage}
+                  onClick={() => fileInputRef.current?.click()}
                 >
-                  <X className="h-4 w-4 mr-1" aria-hidden="true" />
+                  <Upload className="h-4 w-4 mr-1" aria-hidden="true" />
                   Replace
                 </Button>
               </div>
