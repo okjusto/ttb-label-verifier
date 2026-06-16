@@ -1,4 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Upload, Play, X, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   STATUS_STYLES,
   formatDuration,
@@ -19,7 +39,7 @@ type ItemStatus = "pending" | "processing" | "done" | "error";
 type BatchItem = {
   id: string;
   file: File;
-  previewUrl: string; // object URL for thumbnail
+  previewUrl: string;
   status: ItemStatus;
   result?: TimedVerifyResult;
   error?: string;
@@ -41,7 +61,6 @@ export function BatchMode() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cancelRef = useRef(false);
 
-  // Release object URLs on unmount.
   useEffect(() => {
     return () => {
       items.forEach((i) => URL.revokeObjectURL(i.previewUrl));
@@ -49,49 +68,44 @@ export function BatchMode() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const addFiles = useCallback(
-    (files: FileList | File[] | null) => {
-      setGlobalError(null);
-      if (!files) return;
-      const arr = Array.from(files);
-      const accepted: BatchItem[] = [];
-      const rejections: string[] = [];
-      for (const file of arr) {
-        const reason = describeBatchRejection(file);
-        if (reason) {
-          rejections.push(`${file.name} (${reason})`);
-          continue;
-        }
-        accepted.push({
-          id: `${file.name}-${file.size}-${file.lastModified}-${Math.random()
-            .toString(36)
-            .slice(2, 8)}`,
-          file,
-          previewUrl: URL.createObjectURL(file),
-          status: "pending",
-        });
+  const addFiles = useCallback((files: FileList | File[] | null) => {
+    setGlobalError(null);
+    if (!files) return;
+    const arr = Array.from(files);
+    const accepted: BatchItem[] = [];
+    const rejections: string[] = [];
+    for (const file of arr) {
+      const reason = describeBatchRejection(file);
+      if (reason) {
+        rejections.push(`${file.name} (${reason})`);
+        continue;
       }
-      setItems((prev) => {
-        const merged = [...prev, ...accepted].slice(0, MAX_FILES);
-        if (prev.length + accepted.length > MAX_FILES) {
-          setGlobalError(`Only the first ${MAX_FILES} images are kept.`);
-        }
-        return merged;
+      accepted.push({
+        id: `${file.name}-${file.size}-${file.lastModified}-${Math.random()
+          .toString(36)
+          .slice(2, 8)}`,
+        file,
+        previewUrl: URL.createObjectURL(file),
+        status: "pending",
       });
-      if (rejections.length > 0) {
-        const preview = rejections.slice(0, 3).join("; ");
-        const extra =
-          rejections.length > 3 ? ` and ${rejections.length - 3} more` : "";
-        setGlobalError(
-          (prev) =>
-            (prev ? prev + " " : "") +
-            `${rejections.length} file(s) skipped — only JPG/PNG under 8 MB are allowed: ${preview}${extra}.`,
-        );
+    }
+    setItems((prev) => {
+      const merged = [...prev, ...accepted].slice(0, MAX_FILES);
+      if (prev.length + accepted.length > MAX_FILES) {
+        setGlobalError(`Only the first ${MAX_FILES} images are kept.`);
       }
-    },
-    [],
-  );
-
+      return merged;
+    });
+    if (rejections.length > 0) {
+      const preview = rejections.slice(0, 3).join("; ");
+      const extra = rejections.length > 3 ? ` and ${rejections.length - 3} more` : "";
+      setGlobalError(
+        (prev) =>
+          (prev ? prev + " " : "") +
+          `${rejections.length} file(s) skipped — only JPG/PNG under 8 MB are allowed: ${preview}${extra}.`,
+      );
+    }
+  }, []);
 
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -118,10 +132,7 @@ export function BatchMode() {
       const result = await verifyLabel({ imageBase64: dataUrl });
       updateItem(id, { status: "done", result });
     } catch (e: any) {
-      updateItem(id, {
-        status: "error",
-        error: e?.message ?? "Verification failed.",
-      });
+      updateItem(id, { status: "error", error: e?.message ?? "Verification failed." });
     }
   }, []);
 
@@ -135,7 +146,6 @@ export function BatchMode() {
     cancelRef.current = false;
     setRunning(true);
 
-    // Reset items that previously errored or were never processed; keep done ones.
     setItems((prev) =>
       prev.map((it) =>
         it.status === "done"
@@ -144,7 +154,6 @@ export function BatchMode() {
       ),
     );
 
-    // Snapshot the queue.
     const queue = items
       .filter((it) => it.status !== "done")
       .map((it) => ({ id: it.id, file: it.file }));
@@ -186,8 +195,8 @@ export function BatchMode() {
   return (
     <div className="space-y-6">
       {/* Upload zone */}
-      <section className="rounded-lg border-2 border-border bg-card p-6">
-        <h2 className="text-2xl font-bold mb-4">Upload Labels</h2>
+      <section className="space-y-3">
+        <h2 className="text-base font-semibold">Upload Labels</h2>
         <label
           htmlFor="batch-file"
           onDragOver={(e) => {
@@ -197,23 +206,25 @@ export function BatchMode() {
           onDragLeave={() => setDragOver(false)}
           onDrop={onDrop}
           className={[
-            "flex flex-col items-center justify-center gap-3 text-center cursor-pointer",
-            "rounded-lg border-4 border-dashed p-10 min-h-[200px] transition-colors",
+            "group relative flex flex-col items-center justify-center w-full",
+            "border-2 border-dashed rounded-xl bg-muted/40 cursor-pointer transition-colors",
+            "p-8 min-h-[180px] focus-within:ring-2 focus-within:ring-ring",
             dragOver
               ? "border-primary bg-accent"
-              : "border-border bg-secondary hover:bg-accent",
+              : "border-border hover:bg-muted hover:border-muted-foreground/50",
           ].join(" ")}
         >
-          <span className="text-xl font-semibold">
-            Drag and drop label images here
-          </span>
-          <span className="text-base text-muted-foreground">
+          <div className="mb-3 p-3 rounded-full bg-card shadow-sm text-muted-foreground">
+            <Upload className="h-6 w-6" aria-hidden="true" />
+          </div>
+          <p className="text-sm font-medium">Drag and drop label images here</p>
+          <p className="text-xs text-muted-foreground mt-1">
             or click to choose multiple files
-          </span>
-          <span className="text-sm text-muted-foreground">
-            JPG or PNG, up to 8 MB each. Up to {MAX_FILES} images per batch.
-          </span>
-          <input
+          </p>
+          <p className="mt-3 text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
+            JPG or PNG, up to 8 MB · up to {MAX_FILES} per batch
+          </p>
+          <Input
             ref={fileInputRef}
             id="batch-file"
             type="file"
@@ -225,84 +236,59 @@ export function BatchMode() {
         </label>
 
         {globalError && (
-          <p
-            role="alert"
-            className="mt-4 rounded-md border-2 border-destructive bg-destructive/10 px-4 py-3 text-base font-semibold text-destructive"
-          >
-            {globalError}
-          </p>
+          <Alert variant="destructive">
+            <AlertDescription>{globalError}</AlertDescription>
+          </Alert>
         )}
       </section>
 
       {/* Controls + progress */}
       {items.length > 0 && (
-        <section className="rounded-lg border-2 border-border bg-card p-6">
+        <section className="rounded-lg border border-border bg-card p-5 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="text-lg font-semibold">
+            <div className="text-sm font-semibold">
               {total} label{total === 1 ? "" : "s"} loaded
               {running && (
-                <>
-                  {" — Processing "}
-                  <span aria-live="polite">
+                <span className="ml-2 text-muted-foreground font-normal">
+                  — Processing{" "}
+                  <span aria-live="polite" className="font-semibold text-foreground">
                     {Math.min(completed + processingNow, total)}
-                  </span>
-                  {" of "}
-                  {total}
-                </>
+                  </span>{" "}
+                  of {total}
+                </span>
               )}
             </div>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2">
               {!running ? (
                 <>
-                  <button
-                    type="button"
-                    onClick={runQueue}
-                    className="rounded-lg bg-primary px-6 py-3 text-lg font-bold text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-4 focus:ring-ring focus:ring-offset-2"
-                  >
+                  <Button type="button" onClick={runQueue} size="sm">
+                    <Play className="h-4 w-4 mr-1.5" aria-hidden="true" />
                     {completed > 0 ? "Run remaining" : "Verify all labels"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={clearAll}
-                    className="rounded-md border-2 border-border bg-background px-4 py-3 text-base font-semibold hover:bg-accent focus:outline-none focus:ring-4 focus:ring-ring focus:ring-offset-2"
-                  >
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={clearAll}>
                     Clear all
-                  </button>
+                  </Button>
                 </>
               ) : (
-                <button
-                  type="button"
-                  onClick={cancel}
-                  className="rounded-md border-2 border-destructive bg-destructive/10 text-destructive px-4 py-3 text-base font-bold hover:bg-destructive/20 focus:outline-none focus:ring-4 focus:ring-ring focus:ring-offset-2"
-                >
+                <Button type="button" variant="destructive" size="sm" onClick={cancel}>
                   Cancel
-                </button>
+                </Button>
               )}
             </div>
           </div>
 
-          <div className="mt-4">
-            <div
-              className="h-4 w-full overflow-hidden rounded-full bg-secondary border-2 border-border"
-              role="progressbar"
-              aria-valuemin={0}
-              aria-valuemax={total}
-              aria-valuenow={completed}
-              aria-label="Batch verification progress"
-            >
-              <div
-                className="h-full bg-primary transition-all"
-                style={{ width: `${progressPct}%` }}
-              />
-            </div>
-            <div className="mt-2 flex flex-wrap items-center gap-4 text-base text-muted-foreground">
+          <div className="space-y-2">
+            <Progress value={progressPct} aria-label="Batch verification progress" />
+            <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
               <span>
                 {completed} of {total} complete ({progressPct}%)
               </span>
               {doneItems.length > 0 && (
                 <span>
                   Avg time:{" "}
-                  <strong className={avgMs < 5000 ? "text-success" : "text-warning-foreground"}>
+                  <strong
+                    className={avgMs < 5000 ? "text-success" : "text-warning-foreground"}
+                  >
                     {formatDuration(avgMs)}
                   </strong>
                 </span>
@@ -317,53 +303,71 @@ export function BatchMode() {
         </section>
       )}
 
-
       {/* Results table */}
       {items.length > 0 && (
-        <section className="rounded-lg border-2 border-border bg-card p-2 sm:p-4">
-          <ResultsTable
-            items={items}
-            onOpen={(id) => setOpenItemId(id)}
-          />
+        <section className="rounded-lg border border-border bg-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-20">Image</TableHead>
+                  <TableHead>Brand Name</TableHead>
+                  <TableHead>ABV</TableHead>
+                  <TableHead>Net Contents</TableHead>
+                  <TableHead>Warning</TableHead>
+                  <TableHead>Quality</TableHead>
+                  <TableHead>Time</TableHead>
+                  <TableHead className="w-28">Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((it) => (
+                  <BatchRow key={it.id} item={it} onOpen={(id) => setOpenItemId(id)} />
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </section>
       )}
 
-      {/* Detail modal */}
-      {openItem && (
-        <DetailModal item={openItem} onClose={() => setOpenItemId(null)} />
-      )}
-    </div>
-  );
-}
-
-function ResultsTable({
-  items,
-  onOpen,
-}: {
-  items: BatchItem[];
-  onOpen: (id: string) => void;
-}) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-base border-collapse">
-        <thead>
-          <tr className="text-left border-b-2 border-border">
-            <th className="p-3 w-20">Image</th>
-            <th className="p-3">Brand Name</th>
-            <th className="p-3">ABV</th>
-            <th className="p-3">Net Contents</th>
-            <th className="p-3">Warning</th>
-            <th className="p-3">Image Quality</th>
-            <th className="p-3">Time</th>
-            <th className="p-3 w-32">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((it) => (
-            <BatchRow key={it.id} item={it} onOpen={onOpen} />
-          ))}
-        </tbody>
-      </table>
+      {/* Detail dialog */}
+      <Dialog open={!!openItem} onOpenChange={(o) => !o && setOpenItemId(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          {openItem && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center justify-between gap-3 pr-8">
+                  <DialogTitle className="truncate">{openItem.file.name}</DialogTitle>
+                  {openItem.result && <DurationBadge ms={openItem.result.durationMs} />}
+                </div>
+              </DialogHeader>
+              <div className="grid gap-6 md:grid-cols-[260px_1fr] mt-2">
+                <div>
+                  <img
+                    src={openItem.previewUrl}
+                    alt={openItem.file.name}
+                    className="w-full rounded-lg border border-border object-contain bg-muted"
+                  />
+                </div>
+                <div className="space-y-4 min-w-0">
+                  {openItem.status === "error" && (
+                    <Alert variant="destructive">
+                      <AlertTitle>Verification failed</AlertTitle>
+                      <AlertDescription>
+                        {openItem.error || "Verification failed."}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  {openItem.result && <DetailBody result={openItem.result} />}
+                  {!openItem.result && openItem.status !== "error" && (
+                    <p className="text-sm text-muted-foreground">No result yet.</p>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -379,12 +383,8 @@ function BatchRow({
   const warning = item.result ? warningStatus(item.result.warningChecks) : null;
 
   return (
-    <tr
+    <TableRow
       onClick={() => isClickable && onOpen(item.id)}
-      className={[
-        "border-b border-border align-middle",
-        isClickable ? "cursor-pointer hover:bg-accent focus:bg-accent" : "",
-      ].join(" ")}
       tabIndex={isClickable ? 0 : -1}
       onKeyDown={(e) => {
         if (isClickable && (e.key === "Enter" || e.key === " ")) {
@@ -392,37 +392,40 @@ function BatchRow({
           onOpen(item.id);
         }
       }}
+      className={isClickable ? "cursor-pointer" : undefined}
     >
-      <td className="p-3">
+      <TableCell>
         <img
           src={item.previewUrl}
           alt={item.file.name}
-          className="h-14 w-14 object-cover rounded border border-border"
+          className="h-12 w-12 object-cover rounded border border-border"
           loading="lazy"
         />
-      </td>
-      <td className="p-3 break-words max-w-[14rem]">
+      </TableCell>
+      <TableCell className="break-words max-w-[14rem]">
         {item.result?.extracted.brandName || <Dim status={item.status} />}
-      </td>
-      <td className="p-3 break-words max-w-[10rem]">
+      </TableCell>
+      <TableCell className="break-words max-w-[8rem]">
         {item.result?.extracted.abv || <Dim status={item.status} />}
-      </td>
-      <td className="p-3 break-words max-w-[10rem]">
+      </TableCell>
+      <TableCell className="break-words max-w-[8rem]">
         {item.result?.extracted.netContents || <Dim status={item.status} />}
-      </td>
-      <td className="p-3">{warning ? <WarningPill status={warning.status} /> : <Dim status={item.status} />}</td>
-      <td className="p-3">
+      </TableCell>
+      <TableCell>
+        {warning ? <WarningPill status={warning.status} /> : <Dim status={item.status} />}
+      </TableCell>
+      <TableCell>
         {item.result ? (
           <QualityPill quality={item.result.imageQuality} />
         ) : (
           <Dim status={item.status} />
         )}
-      </td>
-      <td className="p-3 whitespace-nowrap">
+      </TableCell>
+      <TableCell className="whitespace-nowrap">
         {item.result ? (
           <span
             className={
-              "font-mono text-sm font-semibold " +
+              "font-mono text-xs font-semibold " +
               (item.result.durationMs < 5000
                 ? "text-success"
                 : "text-warning-foreground")
@@ -438,159 +441,95 @@ function BatchRow({
         ) : (
           <Dim status={item.status} />
         )}
-      </td>
-      <td className="p-3">
+      </TableCell>
+      <TableCell>
         <StatusPill status={item.status} error={item.error} />
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }
 
 function Dim({ status }: { status: ItemStatus }) {
   if (status === "processing")
-    return <em className="text-muted-foreground">Analyzing…</em>;
+    return <em className="text-muted-foreground text-xs">Analyzing…</em>;
   if (status === "pending")
-    return <em className="text-muted-foreground">Waiting</em>;
-  return <em className="text-muted-foreground">—</em>;
+    return <em className="text-muted-foreground text-xs">Waiting</em>;
+  return <em className="text-muted-foreground text-xs">—</em>;
 }
 
 function StatusPill({ status, error }: { status: ItemStatus; error?: string }) {
   if (status === "done")
-    return <span className="font-semibold text-success">Done</span>;
+    return (
+      <Badge className="bg-success text-success-foreground hover:bg-success">Done</Badge>
+    );
   if (status === "error")
     return (
-      <span className="font-semibold text-destructive" title={error}>
+      <Badge variant="destructive" title={error}>
         Error
-      </span>
+      </Badge>
     );
   if (status === "processing")
-    return <span className="font-semibold text-primary">Processing…</span>;
-  return <span className="text-muted-foreground">Pending</span>;
+    return (
+      <Badge variant="secondary" className="gap-1">
+        <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+        Processing
+      </Badge>
+    );
+  return <Badge variant="outline">Pending</Badge>;
 }
 
 function WarningPill({ status }: { status: WarningStatus }) {
   const s = STATUS_STYLES[status];
   const label =
     status === "match" ? "PASS" : status === "review" ? "REVIEW" : "FAIL";
+  const cls =
+    status === "match"
+      ? "bg-success text-success-foreground hover:bg-success"
+      : status === "review"
+      ? "bg-warning text-warning-foreground hover:bg-warning"
+      : "bg-destructive text-destructive-foreground hover:bg-destructive";
   return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-md border-2 px-2 py-1 text-sm font-bold ${s.badge}`}
-    >
+    <Badge className={`gap-1 ${cls}`}>
       <span aria-hidden="true">{s.icon}</span>
       {label}
-    </span>
+    </Badge>
   );
 }
 
 function QualityPill({ quality }: { quality: string }) {
   const cls =
     quality === "good"
-      ? "bg-success text-success-foreground border-success"
+      ? "bg-success text-success-foreground hover:bg-success"
       : quality === "poor"
-      ? "bg-warning text-warning-foreground border-warning"
-      : "bg-destructive text-destructive-foreground border-destructive";
-  return (
-    <span
-      className={`inline-block rounded-md border-2 px-2 py-1 text-sm font-bold ${cls}`}
-    >
-      {String(quality).toUpperCase()}
-    </span>
-  );
-}
-
-function DetailModal({
-  item,
-  onClose,
-}: {
-  item: BatchItem;
-  onClose: () => void;
-}) {
-  const closeBtnRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    const opener = document.activeElement as HTMLElement | null;
-    closeBtnRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      opener?.focus?.();
-    };
-  }, [onClose]);
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="detail-modal-title"
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 p-4 overflow-y-auto"
-      onClick={onClose}
-    >
-      <div
-        className="my-8 w-full max-w-4xl rounded-lg bg-background border-4 border-border shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between gap-3 border-b-2 border-border p-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <h2 id="detail-modal-title" className="text-2xl font-bold truncate">
-              {item.file.name}
-            </h2>
-            {item.result && <DurationBadge ms={item.result.durationMs} />}
-          </div>
-          <button
-            ref={closeBtnRef}
-            type="button"
-            onClick={onClose}
-            aria-label="Close details"
-            className="rounded-md border-2 border-border bg-background px-4 py-2 text-base font-semibold hover:bg-accent focus:outline-none focus:ring-4 focus:ring-ring focus:ring-offset-2"
-          >
-            Close
-          </button>
-        </div>
-        <div className="p-6 grid gap-6 md:grid-cols-[280px_1fr]">
-          <div>
-            <img
-              src={item.previewUrl}
-              alt={item.file.name}
-              className="w-full rounded border-2 border-border object-contain bg-secondary"
-            />
-          </div>
-          <div className="space-y-4">
-            {item.status === "error" && (
-              <div className="rounded-md border-2 border-destructive bg-destructive/10 p-4 text-destructive font-semibold">
-                {item.error || "Verification failed."}
-              </div>
-            )}
-            {item.result && <DetailBody result={item.result} />}
-            {!item.result && item.status !== "error" && (
-              <p className="text-lg text-muted-foreground">No result yet.</p>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+      ? "bg-warning text-warning-foreground hover:bg-warning"
+      : "bg-destructive text-destructive-foreground hover:bg-destructive";
+  return <Badge className={`uppercase ${cls}`}>{String(quality)}</Badge>;
 }
 
 function DetailBody({ result }: { result: TimedVerifyResult }) {
   if (result.imageQuality === "unreadable") {
     return (
-      <div className="rounded-lg border-4 border-destructive bg-destructive/10 p-4 text-destructive font-semibold">
-        Image is unreadable. Please re-shoot this label.
-      </div>
+      <Alert variant="destructive">
+        <AlertTitle>Image is unreadable</AlertTitle>
+        <AlertDescription>Please re-shoot this label.</AlertDescription>
+      </Alert>
     );
   }
   return (
     <div className="space-y-4">
       {result.imageQuality === "poor" && (
-        <div className="rounded-md border-2 border-warning bg-warning/10 p-3 text-warning-foreground font-semibold">
-          ⚠ Image quality is poor. Results may be unreliable.
-        </div>
+        <Alert className="border-warning bg-warning/10">
+          <AlertTitle className="text-warning-foreground">
+            Image quality is poor
+          </AlertTitle>
+          <AlertDescription>Results may be unreliable.</AlertDescription>
+        </Alert>
       )}
-      <div>
-        <h3 className="text-lg font-bold mb-2">Extracted fields</h3>
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-base">
+      <div className="space-y-2">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Extracted fields
+        </h3>
+        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
           <FieldRow label="Brand Name" value={result.extracted.brandName} />
           <FieldRow label="Class/Type" value={result.extracted.classType} />
           <FieldRow label="ABV" value={result.extracted.abv} />
@@ -604,9 +543,11 @@ function DetailBody({ result }: { result: TimedVerifyResult }) {
 
 function FieldRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border-2 border-border bg-background p-3">
-      <div className="font-semibold text-muted-foreground text-sm">{label}</div>
-      <div className="text-lg break-words">
+    <div className="rounded-md border border-border bg-muted/40 p-3">
+      <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        {label}
+      </div>
+      <div className="text-sm mt-0.5 break-words">
         {value || <em className="text-muted-foreground">Not found</em>}
       </div>
     </div>

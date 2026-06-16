@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { Info } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SingleLabelMode } from "@/components/single-label-mode";
 import { BatchMode } from "@/components/batch-mode";
 
@@ -23,109 +25,74 @@ export const Route = createFileRoute("/")({
   component: LabelVerifierPage,
 });
 
-type Mode = "single" | "batch";
-
 function LabelVerifierPage() {
-  const [mode, setMode] = useState<Mode>("single");
+  const [mode, setMode] = useState<"single" | "batch">("single");
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen w-full bg-muted/40">
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:outline-none focus:ring-4 focus:ring-ring"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:outline-none focus:ring-2 focus:ring-ring"
       >
         Skip to main content
       </a>
-      <header className="bg-primary text-primary-foreground border-b-4 border-primary">
-        <div className="mx-auto max-w-6xl px-6 py-6">
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
-            TTB Label Verifier
-          </h1>
-          <p className="mt-2 text-base sm:text-lg opacity-90">
-            Verify alcoholic beverage labels against application data.
-          </p>
-        </div>
-      </header>
 
-      <main id="main-content" className="mx-auto max-w-6xl px-6 py-8 space-y-6">
+      <div className="mx-auto max-w-5xl px-4 py-8 md:px-6 md:py-12 flex flex-col gap-6">
+        {/* Header */}
+        <header className="rounded-xl bg-primary text-primary-foreground p-8 shadow-lg">
+          <h1 className="text-3xl font-bold tracking-tight">TTB Label Verifier</h1>
+          <p className="mt-2 text-base md:text-lg opacity-90">
+            Verify alcoholic beverage labels against application data for federal compliance.
+          </p>
+        </header>
+
+        {/* Instructions */}
         <section
-          aria-labelledby="how-to-use-heading"
-          className="rounded-lg border-2 border-primary bg-accent p-5"
+          aria-labelledby="how-to-use"
+          className="rounded-lg border border-accent bg-accent/60 p-4 flex gap-4 items-start"
         >
-          <h2 id="how-to-use-heading" className="text-lg font-bold mb-2">
-            How to use this tool
-          </h2>
-          <ol className="list-decimal pl-6 space-y-1 text-base">
-            <li>
-              Pick a mode: <strong>Single Label</strong> to check one application,
-              or <strong>Batch</strong> to process many photos at once.
-            </li>
-            <li>
-              Upload a clear JPG or PNG of the label (under 8&nbsp;MB). For Single
-              Label, also type in the four application fields.
-            </li>
-            <li>
-              Click <strong>Verify Label</strong>. Each result shows{" "}
-              <span className="font-bold text-success">GREEN ✓ Match</span>,{" "}
-              <span className="font-bold text-warning-foreground">YELLOW ⚠ Review</span>, or{" "}
-              <span className="font-bold text-destructive">RED ✗ Mismatch</span>,
-              plus a separate check for the government warning.
-            </li>
-            <li>
-              Verifications should finish in under 5 seconds. If something fails,
-              a red message will explain what to do.
-            </li>
-          </ol>
+          <div className="rounded-full bg-primary text-primary-foreground p-1.5 shrink-0">
+            <Info className="h-4 w-4" aria-hidden="true" />
+          </div>
+          <div className="text-sm text-foreground">
+            <p id="how-to-use" className="font-semibold mb-1">
+              How to use this tool
+            </p>
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1 text-muted-foreground">
+              <li>1. Select mode: <strong className="text-foreground">Single Label</strong> or <strong className="text-foreground">Batch</strong>.</li>
+              <li>2. Upload clear JPG/PNG labels (max 8&nbsp;MB).</li>
+              <li>
+                3. Review results:{" "}
+                <span className="font-medium text-success">Match</span>,{" "}
+                <span className="font-medium text-warning-foreground">Review</span>, or{" "}
+                <span className="font-medium text-destructive">Mismatch</span>.
+              </li>
+              <li>4. Verifications typically complete in under 5 seconds.</li>
+            </ul>
+          </div>
         </section>
 
-        <div
-          role="tablist"
-          aria-label="Verification mode"
-          className="inline-flex rounded-lg border-2 border-border bg-card p-1"
-        >
-          <ModeTab
-            active={mode === "single"}
-            onClick={() => setMode("single")}
-            label="Single Label"
-          />
-          <ModeTab
-            active={mode === "batch"}
-            onClick={() => setMode("batch")}
-            label="Batch"
-          />
-        </div>
+        {/* Main interface */}
+        <main id="main-content">
+          <Tabs value={mode} onValueChange={(v) => setMode(v as "single" | "batch")}>
+            <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+              <div className="border-b border-border bg-muted/40 p-2">
+                <TabsList className="bg-muted">
+                  <TabsTrigger value="single" className="px-6">Single Label</TabsTrigger>
+                  <TabsTrigger value="batch" className="px-6">Batch Process</TabsTrigger>
+                </TabsList>
+              </div>
 
-        {mode === "single" ? <SingleLabelMode /> : <BatchMode />}
-      </main>
+              <TabsContent value="single" className="m-0 p-6 md:p-8">
+                <SingleLabelMode />
+              </TabsContent>
+              <TabsContent value="batch" className="m-0 p-6 md:p-8">
+                <BatchMode />
+              </TabsContent>
+            </div>
+          </Tabs>
+        </main>
+      </div>
     </div>
-  );
-}
-
-
-function ModeTab({
-  active,
-  onClick,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={active}
-      onClick={onClick}
-      className={[
-        "px-6 py-3 text-lg font-bold rounded-md transition-colors",
-        "focus:outline-none focus:ring-4 focus:ring-ring focus:ring-offset-2",
-        active
-          ? "bg-primary text-primary-foreground"
-          : "bg-transparent text-foreground hover:bg-accent",
-      ].join(" ")}
-    >
-      {label}
-    </button>
   );
 }
