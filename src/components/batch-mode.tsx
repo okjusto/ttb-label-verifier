@@ -167,10 +167,19 @@ export function BatchMode() {
     cancelRef.current = true;
   };
 
-  const completed = items.filter((i) => i.status === "done" || i.status === "error").length;
+  const doneItems = items.filter((i) => i.status === "done");
+  const errorItems = items.filter((i) => i.status === "error");
+  const completed = doneItems.length + errorItems.length;
   const processingNow = items.filter((i) => i.status === "processing").length;
   const total = items.length;
   const progressPct = total === 0 ? 0 : Math.round((completed / total) * 100);
+  const avgMs =
+    doneItems.length > 0
+      ? Math.round(
+          doneItems.reduce((sum, i) => sum + (i.result?.durationMs ?? 0), 0) /
+            doneItems.length,
+        )
+      : 0;
 
   const openItem = items.find((i) => i.id === openItemId) ?? null;
 
