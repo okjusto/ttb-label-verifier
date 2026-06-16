@@ -93,6 +93,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
 
+      { name: "twitter:title", content: "TTB Label Verifier" },
+      { name: "description", content: "TTB Label Verifier: Verify alcoholic beverage labels against application data for federal compliance." },
+      { property: "og:description", content: "TTB Label Verifier: Verify alcoholic beverage labels against application data for federal compliance." },
+      { name: "twitter:description", content: "TTB Label Verifier: Verify alcoholic beverage labels against application data for federal compliance." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/o1tJDJUYiShAPn1ZsIElwq6Q48d2/social-images/social-1781629159796-grok-image-1a2b6392-bc7a-4b3f-ae91-285a3549e8c4.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/o1tJDJUYiShAPn1ZsIElwq6Q48d2/social-images/social-1781629159796-grok-image-1a2b6392-bc7a-4b3f-ae91-285a3549e8c4.webp" },
     ],
     links: [
       {
@@ -126,23 +132,8 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-        <footer className="w-full border-t border-border/40 py-3 text-center">
-          <p className="text-xs text-muted-foreground">
-            &copy; 2026{" "}
-            <a
-              href="https://www.hellojusto.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline underline-offset-2 hover:text-foreground transition-colors"
-            >
-              Justo Garcia · Author/Designer
-            </a>
-          </p>
-        </footer>
-      </>
+      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+      <Outlet />
     </QueryClientProvider>
   );
 }
