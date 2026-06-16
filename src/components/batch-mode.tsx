@@ -508,7 +508,7 @@ function DetailModal({
   );
 }
 
-function DetailBody({ result }: { result: VerifyResult }) {
+function DetailBody({ result }: { result: TimedVerifyResult }) {
   if (result.imageQuality === "unreadable") {
     return (
       <div className="rounded-lg border-4 border-destructive bg-destructive/10 p-4 text-destructive font-semibold">
