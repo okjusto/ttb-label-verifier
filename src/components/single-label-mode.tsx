@@ -196,14 +196,6 @@ export function SingleLabelMode() {
                   JPG or PNG, up to 8 MB
                 </p>
               </div>
-              <Input
-                ref={fileInputRef}
-                id="label-file"
-                type="file"
-                accept="image/png,image/jpeg"
-                className="sr-only"
-                onChange={(e) => void handleFiles(e.target.files)}
-              />
             </label>
           ) : (
             <div className="space-y-3">
@@ -222,14 +214,22 @@ export function SingleLabelMode() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={clearImage}
+                  onClick={() => fileInputRef.current?.click()}
                 >
-                  <X className="h-4 w-4 mr-1" aria-hidden="true" />
+                  <Upload className="h-4 w-4 mr-1" aria-hidden="true" />
                   Replace
                 </Button>
               </div>
             </div>
           )}
+          <Input
+            ref={fileInputRef}
+            id="label-file"
+            type="file"
+            accept="image/png,image/jpeg"
+            className="sr-only"
+            onChange={(e) => void handleFiles(e.target.files)}
+          />
         </section>
       </div>
 
