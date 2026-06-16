@@ -421,22 +421,16 @@ export function SingleLabelResult({
             const sub = submitted[f.key];
             const got = (result.extracted as any)[f.key] as string;
             const status = compareField(sub, got);
-            const accent =
-              status === "match"
-                ? "before:bg-success"
-                : status === "mismatch"
-                ? "before:bg-destructive"
-                : "before:bg-warning";
             return (
               <Card
                 key={f.key}
-                className={`relative overflow-hidden border-border/70 shadow-sm transition-shadow hover:shadow-md before:absolute before:left-0 before:top-0 before:h-full before:w-1 ${accent}`}
+                className="border-border/70 shadow-sm transition-shadow hover:shadow-md"
               >
-                <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 p-4 pl-5 pb-2">
+                <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 p-4 pb-2">
                   <CardTitle className="text-sm font-semibold">{f.label}</CardTitle>
                   <StatusBadge status={status} />
                 </CardHeader>
-                <CardContent className="p-4 pl-5 pt-2">
+                <CardContent className="p-4 pt-2">
                   <dl className="grid gap-4 sm:grid-cols-2 text-sm">
                     <div className="space-y-1">
                       <dt className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
