@@ -62,7 +62,7 @@ function LabelVerifierPage() {
         <Collapsible open={instructionsOpen} onOpenChange={setInstructionsOpen}>
           <CollapsibleTrigger asChild>
             <button
-              className="w-full rounded-lg border border-accent bg-accent/60 p-4 flex items-center justify-between gap-4 cursor-pointer hover:bg-accent/80 transition-colors"
+              className={`w-full border border-accent bg-accent/60 p-4 flex items-center justify-between gap-4 cursor-pointer hover:bg-accent/80 transition-colors ${instructionsOpen ? 'rounded-t-lg' : 'rounded-lg'}`}
               aria-expanded={instructionsOpen}
             >
               <div className="flex items-center gap-4">
@@ -79,7 +79,7 @@ function LabelVerifierPage() {
             </button>
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <div className="rounded-b-lg border border-t-0 border-accent bg-accent/60 p-4 pt-0">
+            <div className="rounded-b-none border border-t-0 border-accent bg-accent/60 p-4 pt-0">
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1 text-sm text-muted-foreground">
                 <li>1. Select mode: <strong className="text-foreground">Single Label</strong> or <strong className="text-foreground">Batch</strong>.</li>
                 <li>2. Upload clear JPG/PNG labels (max 8&nbsp;MB).</li>
