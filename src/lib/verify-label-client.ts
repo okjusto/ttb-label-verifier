@@ -123,16 +123,29 @@ export function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
+export type TimedVerifyResult = VerifyResult & { durationMs: number };
+
 export async function verifyLabel(input: {
   imageBase64: string;
   brandName?: string;
   classType?: string;
   abv?: string;
   netContents?: string;
-}): Promise<VerifyResult> {
-  const { data, error } = await supabase.functions.invoke("verify-label", {
-    body: input,
-  });
+}): Promise<TimedVerifyResult> {
+  const started = performance.now();
+  let data: unknown;
+  let error: { message?: string } | null = null;
+  try {
+    const res = await supabase.functions.invoke("verify-label", { body: input });
+    data = res.data;
+    error = res.error as any;
+  } catch (e: any) {
+    // Network failure / fetch threw before reaching the function.
+    throw new Error(
+      "Could not reach the verification service. Check your internet connection and try again.",
+    );
+  }
+  const durationMs = Math.round(performance.now() - started);
   if (error) {
     const msg =
       (data as any)?.error ?? error.message ?? "Verification failed. Please try again.";
@@ -141,5 +154,11 @@ export async function verifyLabel(input: {
   if (!data || typeof data !== "object" || !(data as any).extracted) {
     throw new Error("Verification service returned an unexpected response.");
   }
-  return data as VerifyResult;
+  return { ...(data as VerifyResult), durationMs };
 }
+
+export function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms} ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
