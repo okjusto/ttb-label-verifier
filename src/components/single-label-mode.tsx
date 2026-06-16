@@ -457,3 +457,21 @@ function CheckLine({ ok, label }: { ok: boolean; label: string }) {
     </li>
   );
 }
+
+export function DurationBadge({ ms }: { ms: number }) {
+  const fast = ms < 5000;
+  return (
+    <span
+      title={fast ? "Within the 5-second performance target" : "Slower than the 5-second target"}
+      className={`inline-flex items-center gap-1.5 rounded-md border-2 px-3 py-1 text-sm font-bold ${
+        fast
+          ? "bg-success/10 text-success border-success"
+          : "bg-warning/10 text-warning-foreground border-warning"
+      }`}
+    >
+      <span aria-hidden="true">⏱</span>
+      <span>{formatDuration(ms)}</span>
+      <span className="sr-only">{fast ? "within performance target" : "above performance target"}</span>
+    </span>
+  );
+}
