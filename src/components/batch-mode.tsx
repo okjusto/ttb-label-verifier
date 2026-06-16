@@ -295,12 +295,28 @@ export function BatchMode() {
                 style={{ width: `${progressPct}%` }}
               />
             </div>
-            <div className="mt-2 text-base text-muted-foreground">
-              {completed} of {total} complete ({progressPct}%)
+            <div className="mt-2 flex flex-wrap items-center gap-4 text-base text-muted-foreground">
+              <span>
+                {completed} of {total} complete ({progressPct}%)
+              </span>
+              {doneItems.length > 0 && (
+                <span>
+                  Avg time:{" "}
+                  <strong className={avgMs < 5000 ? "text-success" : "text-warning-foreground"}>
+                    {formatDuration(avgMs)}
+                  </strong>
+                </span>
+              )}
+              {errorItems.length > 0 && (
+                <span className="font-semibold text-destructive">
+                  {errorItems.length} error{errorItems.length === 1 ? "" : "s"} — click a row for details
+                </span>
+              )}
             </div>
           </div>
         </section>
       )}
+
 
       {/* Results table */}
       {items.length > 0 && (
