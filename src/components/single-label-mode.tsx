@@ -334,6 +334,9 @@ export function SingleLabelMode() {
 
         {result && <SingleLabelResult result={result} submitted={form} />}
       </section>
+
+      {result && <ScrollToTopButton />}
+
     </div>
   );
 }
