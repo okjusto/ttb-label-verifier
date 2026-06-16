@@ -505,19 +505,25 @@ function DetailModal({
   item: BatchItem;
   onClose: () => void;
 }) {
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    closeBtnRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      opener?.focus?.();
+    };
   }, [onClose]);
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Label details"
+      aria-labelledby="detail-modal-title"
       className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 p-4 overflow-y-auto"
       onClick={onClose}
     >
@@ -526,10 +532,17 @@ function DetailModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3 border-b-2 border-border p-4">
-          <h2 className="text-2xl font-bold truncate">{item.file.name}</h2>
+          <div className="flex items-center gap-3 min-w-0">
+            <h2 id="detail-modal-title" className="text-2xl font-bold truncate">
+              {item.file.name}
+            </h2>
+            {item.result && <DurationBadge ms={item.result.durationMs} />}
+          </div>
           <button
+            ref={closeBtnRef}
             type="button"
             onClick={onClose}
+            aria-label="Close details"
             className="rounded-md border-2 border-border bg-background px-4 py-2 text-base font-semibold hover:bg-accent focus:outline-none focus:ring-4 focus:ring-ring focus:ring-offset-2"
           >
             Close
