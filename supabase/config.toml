@@ -1,1 +1,4 @@
 project_id = "dxnterdligptpmxckfbp"
+
+[functions.verify-label]
+verify_jwt = true
