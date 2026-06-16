@@ -341,6 +341,61 @@ function FormField({
   );
 }
 
+type Status = "match" | "review" | "mismatch" | "not_found";
+
+// Aggressive normalization: lowercase, strip punctuation, collapse whitespace.
+// If two strings are equal under this but NOT under simple trim+lowercase,
+// the difference is purely cosmetic (caps/punctuation/spacing).
+function normalizeAggressive(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[\u2018\u2019\u201A\u201B]/g, "'")
+    .replace(/[\u201C\u201D\u201E\u201F]/g, '"')
+    .replace(/[^\p{Letter}\p{Number}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function compareField(submitted: string, found: string): Status {
+  const s = submitted.trim();
+  const f = found.trim();
+  if (!f) return "not_found";
+  if (!s) return "review"; // nothing submitted to compare against
+  if (s.toLowerCase() === f.toLowerCase()) return "match";
+  if (normalizeAggressive(s) === normalizeAggressive(f)) return "review";
+  return "mismatch";
+}
+
+const STATUS_STYLES: Record<
+  Status,
+  { badge: string; icon: string; label: string; cardBorder: string }
+> = {
+  match: {
+    badge: "bg-success text-success-foreground border-success",
+    icon: "✓",
+    label: "Match",
+    cardBorder: "border-success",
+  },
+  review: {
+    badge: "bg-warning text-warning-foreground border-warning",
+    icon: "⚠",
+    label: "Review",
+    cardBorder: "border-warning",
+  },
+  mismatch: {
+    badge: "bg-destructive text-destructive-foreground border-destructive",
+    icon: "✗",
+    label: "Mismatch",
+    cardBorder: "border-destructive",
+  },
+  not_found: {
+    badge: "bg-warning text-warning-foreground border-warning",
+    icon: "⚠",
+    label: "Not found",
+    cardBorder: "border-warning",
+  },
+};
+
 function ResultView({
   result,
   submitted,
@@ -356,109 +411,159 @@ function ResultView({
   ];
 
   const quality = result.imageQuality;
-  const qualityCls =
-    quality === "good"
-      ? "border-success bg-success/10 text-success"
-      : quality === "poor"
-      ? "border-warning bg-warning/10 text-warning-foreground"
-      : "border-destructive bg-destructive/10 text-destructive";
+
+  // Unreadable: stop here.
+  if (quality === "unreadable") {
+    return (
+      <div className="rounded-lg border-4 border-destructive bg-destructive/10 p-6">
+        <div className="text-2xl font-bold text-destructive mb-2">
+          Image cannot be read
+        </div>
+        <p className="text-lg text-foreground">
+          The label image is too unclear to verify. Please upload a sharper,
+          well-lit photo of the entire label and try again.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className={`rounded-lg border-4 p-5 ${qualityCls}`}>
-        <div className="text-2xl font-bold">
-          Image quality: {String(quality).toUpperCase()}
+      {quality === "poor" && (
+        <div
+          role="status"
+          className="rounded-lg border-4 border-warning bg-warning/10 p-5"
+        >
+          <div className="text-xl font-bold text-warning-foreground">
+            ⚠ Image quality is poor
+          </div>
+          <p className="mt-1 text-base text-foreground">
+            Results below may be unreliable. A clearer photo will improve accuracy.
+          </p>
         </div>
-      </div>
+      )}
 
       <div>
-        <h3 className="text-xl font-bold mb-3">Extracted from the label</h3>
+        <h3 className="text-xl font-bold mb-3">Field comparison</h3>
         <ul className="space-y-3">
           {fields.map((f) => {
             const sub = submitted[f.key];
             const got = (result.extracted as any)[f.key] as string;
-            const match =
-              sub && got && sub.trim().toLowerCase() === got.trim().toLowerCase();
+            const status = compareField(sub, got);
+            const style = STATUS_STYLES[status];
             return (
               <li
                 key={f.key}
-                className="rounded-md border-2 border-border bg-background p-4"
+                className={`rounded-lg border-4 bg-background p-5 ${style.cardBorder}`}
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="text-lg font-semibold">{f.label}</div>
-                  {sub ? (
-                    <MatchBadge match={Boolean(match)} hasValue={Boolean(got)} />
-                  ) : null}
+                  <span
+                    className={`inline-flex items-center gap-2 rounded-md border-2 px-4 py-2 text-lg font-bold ${style.badge}`}
+                  >
+                    <span aria-hidden="true" className="text-xl">
+                      {style.icon}
+                    </span>
+                    {style.label.toUpperCase()}
+                  </span>
                 </div>
-                <dl className="mt-3 grid gap-2 sm:grid-cols-2 text-base">
+                <dl className="mt-4 grid gap-3 sm:grid-cols-2 text-base">
                   <div>
-                    <dt className="font-semibold text-muted-foreground">Submitted</dt>
-                    <dd className="text-foreground break-words">
+                    <dt className="font-semibold text-muted-foreground">
+                      You entered
+                    </dt>
+                    <dd className="text-foreground break-words text-lg">
                       {sub || <em className="text-muted-foreground">(blank)</em>}
                     </dd>
                   </div>
                   <div>
-                    <dt className="font-semibold text-muted-foreground">On the label</dt>
-                    <dd className="text-foreground break-words">
+                    <dt className="font-semibold text-muted-foreground">
+                      On the label
+                    </dt>
+                    <dd className="text-foreground break-words text-lg">
                       {got || <em className="text-muted-foreground">Not found</em>}
                     </dd>
                   </div>
                 </dl>
+                {status === "review" && (
+                  <p className="mt-3 text-base font-semibold text-warning-foreground">
+                    Values differ only in capitalization, punctuation, or spacing.
+                    Please review and make the final call.
+                  </p>
+                )}
               </li>
             );
           })}
         </ul>
       </div>
 
-      <div>
-        <h3 className="text-xl font-bold mb-3">Government warning</h3>
-        <div className="rounded-md border-2 border-border bg-background p-4 space-y-4">
-          <div>
-            <div className="font-semibold text-muted-foreground mb-1">
-              Warning text on the label
-            </div>
-            <p className="whitespace-pre-wrap text-base">
-              {result.extracted.warningText || (
-                <em className="text-muted-foreground">Not found on label</em>
-              )}
-            </p>
-          </div>
-          <ul className="space-y-2 text-lg">
-            <CheckLine
-              ok={result.warningChecks.exactWordingPresent}
-              label="Mandatory TTB wording is present word-for-word"
-            />
-            <CheckLine
-              ok={result.warningChecks.isAllCaps}
-              label={'"GOVERNMENT WARNING:" appears in all caps'}
-            />
-            <CheckLine
-              ok={result.warningChecks.isBold}
-              label={'"GOVERNMENT WARNING:" appears in bold'}
-            />
-          </ul>
-        </div>
-      </div>
+      <WarningBlock result={result} />
     </div>
   );
 }
 
-function MatchBadge({ match, hasValue }: { match: boolean; hasValue: boolean }) {
-  if (!hasValue) {
-    return (
-      <span className="inline-block rounded-md border-2 px-3 py-1 text-base font-bold bg-warning text-warning-foreground border-warning">
-        NOT FOUND
-      </span>
-    );
+function WarningBlock({ result }: { result: VerifyResult }) {
+  const { exactWordingPresent, isAllCaps, isBold } = result.warningChecks;
+
+  let status: "match" | "review" | "mismatch";
+  let message: string;
+  const formatProblems: string[] = [];
+  if (!isAllCaps) formatProblems.push('"GOVERNMENT WARNING:" is not in all caps');
+  if (!isBold) formatProblems.push('"GOVERNMENT WARNING:" is not bold');
+
+  if (!exactWordingPresent) {
+    status = "mismatch";
+    message =
+      "The mandatory TTB government warning text is missing or has been altered.";
+  } else if (formatProblems.length > 0) {
+    status = "review";
+    message = `Wording is correct, but formatting needs review: ${formatProblems.join("; ")}.`;
+  } else {
+    status = "match";
+    message =
+      "Mandatory TTB wording is present word-for-word, in all caps, and bold.";
   }
-  return match ? (
-    <span className="inline-block rounded-md border-2 px-3 py-1 text-base font-bold bg-success text-success-foreground border-success">
-      MATCH
-    </span>
-  ) : (
-    <span className="inline-block rounded-md border-2 px-3 py-1 text-base font-bold bg-destructive text-destructive-foreground border-destructive">
-      MISMATCH
-    </span>
+
+  const style = STATUS_STYLES[status];
+
+  return (
+    <div>
+      <h3 className="text-xl font-bold mb-3">Government warning</h3>
+      <div className={`rounded-lg border-4 bg-background p-5 ${style.cardBorder}`}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="text-lg font-semibold">Compliance check</div>
+          <span
+            className={`inline-flex items-center gap-2 rounded-md border-2 px-4 py-2 text-lg font-bold ${style.badge}`}
+          >
+            <span aria-hidden="true" className="text-xl">
+              {style.icon}
+            </span>
+            {style.label.toUpperCase()}
+          </span>
+        </div>
+        <p className="mt-3 text-base font-semibold">{message}</p>
+
+        <ul className="mt-4 space-y-2 text-base">
+          <CheckLine
+            ok={exactWordingPresent}
+            label="Mandatory TTB wording present word-for-word"
+          />
+          <CheckLine ok={isAllCaps} label={'"GOVERNMENT WARNING:" in all caps'} />
+          <CheckLine ok={isBold} label={'"GOVERNMENT WARNING:" in bold'} />
+        </ul>
+
+        <div className="mt-4">
+          <div className="font-semibold text-muted-foreground mb-1">
+            Warning text on the label
+          </div>
+          <p className="whitespace-pre-wrap text-base">
+            {result.extracted.warningText || (
+              <em className="text-muted-foreground">Not found on label</em>
+            )}
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -467,7 +572,7 @@ function CheckLine({ ok, label }: { ok: boolean; label: string }) {
     <li className="flex items-start gap-3">
       <span
         aria-hidden="true"
-        className={`mt-1 inline-flex h-6 w-6 items-center justify-center rounded-full border-2 text-sm font-bold ${
+        className={`mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full border-2 text-sm font-bold ${
           ok
             ? "bg-success text-success-foreground border-success"
             : "bg-destructive text-destructive-foreground border-destructive"
