@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -399,9 +400,9 @@ export function SingleLabelResult({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {quality === "poor" && (
-        <Alert className="border-warning bg-warning/10">
+        <Alert className="border-warning/50 bg-warning/10">
           <AlertTitle className="text-warning-foreground">
             Image quality is poor
           </AlertTitle>
@@ -411,53 +412,60 @@ export function SingleLabelResult({
         </Alert>
       )}
 
-      <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+      <div className="space-y-4">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.12em]">
           Field comparison
         </h3>
-        <ul className="space-y-3">
+        <div className="grid gap-3">
           {FIELD_DEFS.map((f) => {
             const sub = submitted[f.key];
             const got = (result.extracted as any)[f.key] as string;
             const status = compareField(sub, got);
-            const style = STATUS_STYLES[status];
+            const accent =
+              status === "match"
+                ? "before:bg-success"
+                : status === "mismatch"
+                ? "before:bg-destructive"
+                : "before:bg-warning";
             return (
-              <li
+              <Card
                 key={f.key}
-                className={`rounded-lg border-l-4 border border-border bg-card p-4 ${style.cardBorder}`}
+                className={`relative overflow-hidden border-border/70 shadow-sm transition-shadow hover:shadow-md before:absolute before:left-0 before:top-0 before:h-full before:w-1 ${accent}`}
               >
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="text-sm font-semibold text-foreground">{f.label}</div>
+                <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 p-4 pl-5 pb-2">
+                  <CardTitle className="text-sm font-semibold">{f.label}</CardTitle>
                   <StatusBadge status={status} />
-                </div>
-                <dl className="mt-3 grid gap-3 sm:grid-cols-2 text-sm">
-                  <div>
-                    <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                      You entered
-                    </dt>
-                    <dd className="mt-0.5 break-words">
-                      {sub || <em className="text-muted-foreground">(blank)</em>}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                      On the label
-                    </dt>
-                    <dd className="mt-0.5 break-words">
-                      {got || <em className="text-muted-foreground">Not found</em>}
-                    </dd>
-                  </div>
-                </dl>
-                {status === "review" && (
-                  <p className="mt-2 text-xs text-warning-foreground">
-                    Values differ only in capitalization, punctuation, or spacing —
-                    please review.
-                  </p>
-                )}
-              </li>
+                </CardHeader>
+                <CardContent className="p-4 pl-5 pt-2">
+                  <dl className="grid gap-4 sm:grid-cols-2 text-sm">
+                    <div className="space-y-1">
+                      <dt className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                        You entered
+                      </dt>
+                      <dd className="break-words font-medium">
+                        {sub || <em className="font-normal text-muted-foreground">(blank)</em>}
+                      </dd>
+                    </div>
+                    <div className="space-y-1">
+                      <dt className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                        On the label
+                      </dt>
+                      <dd className="break-words font-medium">
+                        {got || <em className="font-normal text-muted-foreground">Not found</em>}
+                      </dd>
+                    </div>
+                  </dl>
+                  {status === "review" && (
+                    <p className="mt-3 text-xs text-warning-foreground/80">
+                      Values differ only in capitalization, punctuation, or spacing —
+                      please review.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
             );
           })}
-        </ul>
+        </div>
       </div>
 
       <WarningBlock result={result} />
@@ -469,12 +477,12 @@ export function StatusBadge({ status }: { status: keyof typeof STATUS_STYLES }) 
   const s = STATUS_STYLES[status];
   const variantClass =
     status === "match"
-      ? "bg-success text-success-foreground hover:bg-success"
+      ? "bg-success/15 text-success border border-success/30 hover:bg-success/15"
       : status === "mismatch"
-      ? "bg-destructive text-destructive-foreground hover:bg-destructive"
-      : "bg-warning text-warning-foreground hover:bg-warning";
+      ? "bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/15"
+      : "bg-warning/20 text-warning-foreground border border-warning/40 hover:bg-warning/20";
   return (
-    <Badge className={`gap-1 uppercase tracking-wider ${variantClass}`}>
+    <Badge className={`gap-1 rounded-full px-2.5 py-0.5 text-[10px] uppercase tracking-[0.1em] font-semibold shadow-none ${variantClass}`}>
       <span aria-hidden="true">{s.icon}</span>
       {s.label}
     </Badge>
@@ -483,38 +491,47 @@ export function StatusBadge({ status }: { status: keyof typeof STATUS_STYLES }) 
 
 export function WarningBlock({ result }: { result: VerifyResult }) {
   const { status, message } = warningStatus(result.warningChecks);
-  const style = STATUS_STYLES[status];
   const { exactWordingPresent, isAllCaps, isBold } = result.warningChecks;
+  const accent =
+    status === "match"
+      ? "before:bg-success"
+      : status === "mismatch"
+      ? "before:bg-destructive"
+      : "before:bg-warning";
 
   return (
-    <div className="space-y-3">
-      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+    <div className="space-y-4">
+      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.12em]">
         Government warning
       </h3>
-      <div className={`rounded-lg border-l-4 border border-border bg-card p-4 ${style.cardBorder}`}>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="text-sm font-semibold">Compliance check</div>
+      <Card
+        className={`relative overflow-hidden border-border/70 shadow-sm before:absolute before:left-0 before:top-0 before:h-full before:w-1 ${accent}`}
+      >
+        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 p-4 pl-5 pb-2">
+          <CardTitle className="text-sm font-semibold">Compliance check</CardTitle>
           <StatusBadge status={status} />
-        </div>
-        <p className="mt-2 text-sm">{message}</p>
+        </CardHeader>
+        <CardContent className="p-4 pl-5 pt-2 space-y-4">
+          <p className="text-sm text-foreground/90">{message}</p>
 
-        <ul className="mt-4 space-y-2 text-sm">
-          <CheckLine ok={exactWordingPresent} label="Mandatory TTB wording present word-for-word" />
-          <CheckLine ok={isAllCaps} label={'"GOVERNMENT WARNING:" in all caps'} />
-          <CheckLine ok={isBold} label={'"GOVERNMENT WARNING:" in bold'} />
-        </ul>
+          <ul className="grid gap-2 text-sm">
+            <CheckLine ok={exactWordingPresent} label="Mandatory TTB wording present word-for-word" />
+            <CheckLine ok={isAllCaps} label={'"GOVERNMENT WARNING:" in all caps'} />
+            <CheckLine ok={isBold} label={'"GOVERNMENT WARNING:" in bold'} />
+          </ul>
 
-        <div className="mt-4">
-          <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">
-            Warning text on the label
+          <div className="rounded-md border border-border/70 bg-muted/40 p-3">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-1.5">
+              Warning text on the label
+            </div>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed">
+              {result.extracted.warningText || (
+                <em className="text-muted-foreground">Not found on label</em>
+              )}
+            </p>
           </div>
-          <p className="whitespace-pre-wrap text-sm">
-            {result.extracted.warningText || (
-              <em className="text-muted-foreground">Not found on label</em>
-            )}
-          </p>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -524,16 +541,19 @@ function CheckLine({ ok, label }: { ok: boolean; label: string }) {
     <li className="flex items-start gap-2.5">
       <span
         aria-hidden="true"
-        className={`mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold ${
+        className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
           ok
-            ? "bg-success text-success-foreground"
-            : "bg-destructive text-destructive-foreground"
+            ? "bg-success/15 text-success"
+            : "bg-destructive/15 text-destructive"
         }`}
       >
         {ok ? "✓" : "✗"}
       </span>
-      <span>
-        <strong className="font-semibold">{ok ? "PASS" : "FAIL"}</strong> — {label}
+      <span className="text-sm">
+        <strong className={`font-semibold ${ok ? "text-success" : "text-destructive"}`}>
+          {ok ? "PASS" : "FAIL"}
+        </strong>{" "}
+        <span className="text-foreground/90">— {label}</span>
       </span>
     </li>
   );
@@ -546,10 +566,10 @@ export function DurationBadge({ ms }: { ms: number }) {
       variant="outline"
       title={fast ? "Within the 5-second performance target" : "Slower than the 5-second target"}
       className={
-        "gap-1.5 font-mono " +
+        "gap-1.5 rounded-full font-mono text-xs " +
         (fast
           ? "border-success/40 bg-success/10 text-success"
-          : "border-warning/40 bg-warning/10 text-warning-foreground")
+          : "border-warning/50 bg-warning/15 text-warning-foreground")
       }
     >
       <Timer className="h-3 w-3" aria-hidden="true" />
@@ -560,3 +580,4 @@ export function DurationBadge({ ms }: { ms: number }) {
     </Badge>
   );
 }
+
