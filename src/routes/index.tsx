@@ -29,6 +29,7 @@ export const Route = createFileRoute("/")({
 
 function LabelVerifierPage() {
   const [mode, setMode] = useState<"single" | "batch">("single");
+  const [instructionsOpen, setInstructionsOpen] = useState(false);
 
   return (
     <div className="min-h-screen w-full bg-muted/40">
