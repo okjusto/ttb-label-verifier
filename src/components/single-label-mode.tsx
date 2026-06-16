@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CheckCircle2, Upload, Loader2, Timer, X } from "lucide-react";
+import { ArrowUp, CheckCircle2, Upload, Loader2, Timer, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -334,9 +334,43 @@ export function SingleLabelMode() {
 
         {result && <SingleLabelResult result={result} submitted={form} />}
       </section>
+
+      {result && <ScrollToTopButton />}
+
     </div>
   );
 }
+
+function ScrollToTopButton() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setVisible(window.scrollY > 400);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return (
+    <button
+      type="button"
+      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      aria-label="Scroll back to top to scan more labels"
+      className={[
+        "fixed bottom-6 right-6 z-40 inline-flex h-12 w-12 items-center justify-center",
+        "rounded-full bg-primary text-primary-foreground shadow-lg ring-1 ring-primary/20",
+        "transition-all duration-300 hover:scale-105 hover:shadow-xl",
+        "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+        visible
+          ? "opacity-100 translate-y-0 pointer-events-auto"
+          : "opacity-0 translate-y-3 pointer-events-none",
+      ].join(" ")}
+    >
+      <ArrowUp className="h-5 w-5" aria-hidden="true" />
+    </button>
+  );
+}
+
 
 function SectionHeading({ id, children }: { id?: string; children: React.ReactNode }) {
   return (
@@ -421,22 +455,16 @@ export function SingleLabelResult({
             const sub = submitted[f.key];
             const got = (result.extracted as any)[f.key] as string;
             const status = compareField(sub, got);
-            const accent =
-              status === "match"
-                ? "before:bg-success"
-                : status === "mismatch"
-                ? "before:bg-destructive"
-                : "before:bg-warning";
             return (
               <Card
                 key={f.key}
-                className={`relative overflow-hidden border-border/70 shadow-sm transition-shadow hover:shadow-md before:absolute before:left-0 before:top-0 before:h-full before:w-1 ${accent}`}
+                className="border-border/70 shadow-sm transition-shadow hover:shadow-md"
               >
-                <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 p-4 pl-5 pb-2">
+                <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 p-4 pb-2">
                   <CardTitle className="text-sm font-semibold">{f.label}</CardTitle>
                   <StatusBadge status={status} />
                 </CardHeader>
-                <CardContent className="p-4 pl-5 pt-2">
+                <CardContent className="p-4 pt-2">
                   <dl className="grid gap-4 sm:grid-cols-2 text-sm">
                     <div className="space-y-1">
                       <dt className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
@@ -492,27 +520,20 @@ export function StatusBadge({ status }: { status: keyof typeof STATUS_STYLES }) 
 export function WarningBlock({ result }: { result: VerifyResult }) {
   const { status, message } = warningStatus(result.warningChecks);
   const { exactWordingPresent, isAllCaps, isBold } = result.warningChecks;
-  const accent =
-    status === "match"
-      ? "before:bg-success"
-      : status === "mismatch"
-      ? "before:bg-destructive"
-      : "before:bg-warning";
 
   return (
     <div className="space-y-4">
       <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.12em]">
         Government warning
       </h3>
-      <Card
-        className={`relative overflow-hidden border-border/70 shadow-sm before:absolute before:left-0 before:top-0 before:h-full before:w-1 ${accent}`}
-      >
-        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 p-4 pl-5 pb-2">
+      <Card className="border-border/70 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 p-4 pb-2">
           <CardTitle className="text-sm font-semibold">Compliance check</CardTitle>
           <StatusBadge status={status} />
         </CardHeader>
-        <CardContent className="p-4 pl-5 pt-2 space-y-4">
+        <CardContent className="p-4 pt-2 space-y-4">
           <p className="text-sm text-foreground/90">{message}</p>
+
 
           <ul className="grid gap-2 text-sm">
             <CheckLine ok={exactWordingPresent} label="Mandatory TTB wording present word-for-word" />
