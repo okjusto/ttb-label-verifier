@@ -341,6 +341,37 @@ export function SingleLabelMode() {
   );
 }
 
+function ScrollToTopButton() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setVisible(window.scrollY > 400);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return (
+    <button
+      type="button"
+      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      aria-label="Scroll back to top to scan more labels"
+      className={[
+        "fixed bottom-6 right-6 z-40 inline-flex h-12 w-12 items-center justify-center",
+        "rounded-full bg-primary text-primary-foreground shadow-lg ring-1 ring-primary/20",
+        "transition-all duration-300 hover:scale-105 hover:shadow-xl",
+        "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+        visible
+          ? "opacity-100 translate-y-0 pointer-events-auto"
+          : "opacity-0 translate-y-3 pointer-events-none",
+      ].join(" ")}
+    >
+      <ArrowUp className="h-5 w-5" aria-hidden="true" />
+    </button>
+  );
+}
+
+
 function SectionHeading({ id, children }: { id?: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2">
