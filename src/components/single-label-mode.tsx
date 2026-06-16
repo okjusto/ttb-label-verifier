@@ -240,21 +240,34 @@ export function SingleLabelMode() {
       <section
         aria-labelledby="results-heading"
         aria-live="polite"
+        aria-busy={submitting}
         className="rounded-lg border-2 border-border bg-card p-6 min-h-[160px]"
       >
-        <h2 id="results-heading" className="text-2xl font-bold mb-4">
-          Verification Results
-        </h2>
+        <div className="flex flex-wrap items-baseline justify-between gap-3 mb-4">
+          <h2
+            id="results-heading"
+            ref={resultsHeadingRef}
+            tabIndex={-1}
+            className="text-2xl font-bold focus:outline-none focus:ring-4 focus:ring-ring rounded"
+          >
+            Verification Results
+          </h2>
+          {result && <DurationBadge ms={result.durationMs} />}
+        </div>
         {!result && !submitting && (
           <p className="text-lg text-muted-foreground">
             Results will appear here after you click <strong>Verify Label</strong>.
           </p>
         )}
         {submitting && (
-          <p className="text-lg">Analyzing label image. This may take a few seconds…</p>
+          <p className="text-lg" role="status">
+            <span className="inline-block h-3 w-3 mr-2 rounded-full bg-primary animate-pulse" aria-hidden="true" />
+            Analyzing label image. This usually takes 2–5 seconds…
+          </p>
         )}
         {result && <SingleLabelResult result={result} submitted={form} />}
       </section>
+
     </div>
   );
 }
