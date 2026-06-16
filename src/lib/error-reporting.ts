@@ -14,7 +14,7 @@ type HostEvents = {
 
 declare global {
   interface Window {
-    __lovableEvents?: HostEvents;
+    __hostEvents?: HostEvents;
   }
 }
 
@@ -22,7 +22,7 @@ export function reportError(error: unknown, context: Record<string, unknown> = {
   if (typeof window === "undefined") return;
   // The hosting platform exposes a global error-capture hook; we forward to it
   // when present and otherwise stay silent.
-  window.__lovableEvents?.captureException?.(
+  window.__hostEvents?.captureException?.(
     error,
     {
       source: "react_error_boundary",
