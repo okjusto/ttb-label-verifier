@@ -1,62 +1,35 @@
-# TTB Label Verifier — Plan
+## Goal
 
-A single-page, high-contrast, large-text internal tool that compares a label image to the application data using AI.
+Get this project's code into a GitHub repository you can share, with your README at the root.
 
-## Visual design
+## Steps
 
-- Government navy + white theme. Single H1 "TTB Label Verifier" in the header.
-- Body text ≥18px, labels/buttons ≥20px, headings 28–40px. Bold weights for primary content.
-- Navy primary (`#1a2b5c`-ish, defined as oklch tokens in `src/styles.css`), white background, near-black text, high-contrast focus rings (4px), generous padding on inputs and buttons (≥56px tall).
-- Two-column layout on desktop (`md:grid-cols-2`), stacked on mobile. Verify button full-width below both columns. Results area renders below.
-- All colors via semantic tokens — no hardcoded color utilities.
+### 1. Add the README to the project (I'll do this)
+Copy your uploaded `README.md` to the project root (`/README.md`). It will sync to GitHub automatically once the repo is connected. If a `README.md` already exists, I'll overwrite it with your version.
 
-## Page layout (single route: `/`)
+### 2. Connect to GitHub (you do this — Lovable can't click these for you)
+GitHub connection is an account-level action that requires you to authorize the Lovable GitHub App in your browser. Walkthrough:
 
-```
-┌──────────────────────────────────────────────┐
-│ HEADER: TTB Label Verifier                   │
-├──────────────────────────┬───────────────────┤
-│ Application Data         │ Label Image       │
-│  Brand Name       [____] │  ┌─────────────┐  │
-│  Class/Type       [____] │  │ Drag & drop │  │
-│  Alcohol (ABV)    [____] │  │  or click   │  │
-│  Net Contents     [____] │  └─────────────┘  │
-│                          │  [preview shown]  │
-├──────────────────────────┴───────────────────┤
-│        [  Verify Label  ]  (large)           │
-├──────────────────────────────────────────────┤
-│ Results area (empty until verified)          │
-└──────────────────────────────────────────────┘
-```
+1. In the Lovable editor, click the **Plus (+)** menu in the chat input (bottom-left).
+2. Choose **GitHub → Connect project**.
+3. Authorize the **Lovable GitHub App** on GitHub when prompted.
+4. Select the GitHub account or organization that should own the repo.
+5. Click **Create Repository** in Lovable — Lovable will create a fresh repo and push the current codebase to it.
 
-## Implementation
+After this, the sync is bidirectional: edits in Lovable push to GitHub, and commits pushed to GitHub sync back into Lovable in real time.
 
-### Frontend (`src/routes/index.tsx`)
-- Replace placeholder with the full single-page UI.
-- State: form fields, uploaded file (`File`), preview data URL, loading, result.
-- Upload zone: drag-and-drop + click-to-select, jpg/png only, single image, large clear preview after upload with a "Replace image" button.
-- On submit: read image as base64 data URL, call the server function `verifyLabel`, render results.
-- Set route `head()` with proper title/description.
+### 3. Share the repo
+Once created, the repo URL will be `https://github.com/<your-account>/<repo-name>`. You can share that link, or use **Code → Download ZIP** on GitHub for a one-shot archive.
 
-### Results UI
-- Overall verdict card (PASS / NEEDS REVIEW) with large icon-free text and color.
-- Per-field checklist: Brand Name, Class/Type, ABV, Net Contents — each shows the value on the label (or "not found"), match status, and a plain-language note.
-- General observations / required disclosures section.
+## Notes
 
-### Backend (Lovable AI)
-- Enable Lovable Cloud + ensure `LOVABLE_API_KEY`.
-- `src/lib/verify-label.functions.ts` — `createServerFn` POST that takes `{ brandName, classType, abv, netContents, imageDataUrl }`, validates with Zod, calls Lovable AI Gateway via `/v1/chat/completions` using `google/gemini-2.5-pro` (strong multimodal reasoning) with a multimodal message (text + `image_url` data URL) and `response_format: json_object`. Returns structured `{ overall, fields: [...], notes: [...] }`.
-- Handles 429 (rate limit) and 402 (credits) with clear error messages surfaced in the UI.
-- Reads `LOVABLE_API_KEY` inside the handler; never exposed to client.
+- Only one GitHub account can be connected to a Lovable account at a time.
+- Lovable does not currently support importing into an existing GitHub repo — it must create a new one.
+- The `.env` file is gitignored, so your Lovable Cloud keys won't be pushed. Anyone cloning the repo to run it locally will need their own backend.
+- Database data is not included in the repo — export tables separately from Cloud → Database if needed.
 
-### Design tokens
-- Update `src/styles.css`: navy primary, white background, strong focus ring token, larger default radius. Keep shadcn token mapping intact.
+## What I'll do on approval
 
-### Files touched
-- `src/styles.css` — theme tokens
-- `src/routes/index.tsx` — full page UI
-- `src/lib/verify-label.functions.ts` — server function (new)
-- `src/routes/__root.tsx` — update default title/meta to "TTB Label Verifier"
+- Write `README.md` at the project root using your uploaded content.
 
-## Out of scope
-- Auth, history/persistence of past verifications, multi-image uploads, PDF labels, exporting reports. Can be added later.
+Everything in Step 2 has to be done by you in the Lovable UI — I'll be standing by if anything in the connect flow misbehaves.
