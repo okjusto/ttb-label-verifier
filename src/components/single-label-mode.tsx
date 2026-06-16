@@ -486,27 +486,20 @@ export function StatusBadge({ status }: { status: keyof typeof STATUS_STYLES }) 
 export function WarningBlock({ result }: { result: VerifyResult }) {
   const { status, message } = warningStatus(result.warningChecks);
   const { exactWordingPresent, isAllCaps, isBold } = result.warningChecks;
-  const accent =
-    status === "match"
-      ? "before:bg-success"
-      : status === "mismatch"
-      ? "before:bg-destructive"
-      : "before:bg-warning";
 
   return (
     <div className="space-y-4">
       <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.12em]">
         Government warning
       </h3>
-      <Card
-        className={`relative overflow-hidden border-border/70 shadow-sm before:absolute before:left-0 before:top-0 before:h-full before:w-1 ${accent}`}
-      >
-        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 p-4 pl-5 pb-2">
+      <Card className="border-border/70 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 p-4 pb-2">
           <CardTitle className="text-sm font-semibold">Compliance check</CardTitle>
           <StatusBadge status={status} />
         </CardHeader>
-        <CardContent className="p-4 pl-5 pt-2 space-y-4">
+        <CardContent className="p-4 pt-2 space-y-4">
           <p className="text-sm text-foreground/90">{message}</p>
+
 
           <ul className="grid gap-2 text-sm">
             <CheckLine ok={exactWordingPresent} label="Mandatory TTB wording present word-for-word" />
