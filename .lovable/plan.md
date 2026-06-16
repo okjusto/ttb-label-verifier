@@ -1,15 +1,11 @@
-## Cleanup Plan: Remove Lovable Metadata and Branding
+The app is still failing on the public URL with `No such module "assets/react"`, which means the published bundle is invalid/stale rather than the UI card styling being the direct cause.
 
-### Problem
-The `.meta` folder (formerly `.lovable`) contains platform metadata files that were pushed to GitHub. One file still references `__lovableEvents` in the error reporter, and the `public/favicon.ico` is likely a default platform icon.
+Plan:
+1. Adjust the Vite/TanStack configuration so React is bundled correctly for the published server runtime instead of being referenced as a missing `assets/react` module.
+2. Keep the existing SSR error wrapper in place, since it is now correctly exposing a friendly fallback and production logs.
+3. Re-check metadata/security preflight, then publish a fresh deployment.
+4. Verify the public URL returns the app instead of the error page.
 
-### Changes
-1. **Delete `.meta` folder** — Removes `plan.md` and `project.json` metadata entirely.
-2. **Add `.meta` to `.gitignore`** — Prevents it from being re-committed if the platform recreates it.
-3. **Rename `window.__lovableEvents`** → `window.__hostEvents` in `src/lib/error-reporting.ts` — Removes the last code reference to the platform name.
-4. **Remove `public/favicon.ico`** — The file is a default platform icon (≈7KB) and is not referenced in any HTML `<head>`. Removing it eliminates a Lovable-branded asset.
-
-### Verification
-- Run `bun run build` after edits to confirm the app still compiles cleanly.
-- Run a final `rg -i "lovable"` to confirm zero matches in the source tree.
-
+Technical details:
+- The likely fix is in `vite.config.ts`: use the Lovable TanStack config wrapper (or equivalent dependency bundling configuration) rather than the current plain Vite setup that appears to be producing a broken server bundle.
+- No database/backend schema changes are needed.
