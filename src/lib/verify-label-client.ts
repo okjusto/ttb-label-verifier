@@ -136,6 +136,10 @@ export async function verifyLabel(input: {
   let data: unknown;
   let error: { message?: string } | null = null;
   try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      await supabase.auth.signInAnonymously();
+    }
     const res = await supabase.functions.invoke("verify-label", { body: input });
     data = res.data;
     error = res.error as any;
