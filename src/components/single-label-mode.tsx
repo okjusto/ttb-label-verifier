@@ -234,25 +234,36 @@ export function SingleLabelMode() {
 
       {/* Action */}
       <div className="flex flex-col items-center gap-3">
-        <Button
-          type="button"
-          size="lg"
-          onClick={onVerify}
-          disabled={submitting || !imagePreview}
-          className="px-8 font-semibold shadow-md"
-        >
-          {submitting ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
-              Verifying label…
-            </>
-          ) : (
-            <>
-              <CheckCircle2 className="h-4 w-4 mr-2" aria-hidden="true" />
-              Verify Label
-            </>
-          )}
-        </Button>
+        <TooltipProvider>
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                size="lg"
+                onClick={onVerify}
+                disabled={submitting || !imagePreview}
+                className="px-8 font-semibold shadow-md"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
+                    Verifying label…
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-4 w-4 mr-2" aria-hidden="true" />
+                    Verify Label
+                  </>
+                )}
+              </Button>
+            </TooltipTrigger>
+            {!imagePreview && (
+              <TooltipContent>
+                <p>Please upload labels</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
         {!imagePreview && !submitting && (
           <p className="text-xs text-muted-foreground">
             Upload a label image to enable verification.
