@@ -61,16 +61,16 @@ The AI call runs server-side, never in the browser. This keeps credentials off t
 
 ## Tech stack
 
-- **Frontend:** React + TypeScript (built in Lovable)
-- **Backend:** Managed serverless function (Lovable Cloud / Supabase edge function)
+- **Frontend:** React + TypeScript (TanStack Start)
+- **Backend:** Managed serverless function (Supabase edge function)
 - **AI model:** Claude Sonnet (vision) — chosen for reliable reading of imperfect images
-- **Hosting:** Deployed via Lovable; source synced to GitHub
+- **Hosting:** Deployed to a managed edge platform; source synced to GitHub
 
 ---
 
 ## Setup & run
 
-This project was built and deployed through Lovable, with source synced to GitHub for inspection.
+The deployed app is hosted on a managed edge platform, with source synced to GitHub for inspection.
 
 ### View the deployed app
 Visit the deployed URL: **[add your deployed URL here]**
@@ -86,7 +86,7 @@ Visit the deployed URL: **[add your deployed URL here]**
    npm install
    ```
 3. Configure environment. Copy `.env.example` to `.env` and provide:
-   - The backend connection values (provisioned by Lovable Cloud / Supabase).
+   - The backend connection values (Supabase URL and publishable key).
    - The AI model credential, stored as a backend secret — **never committed**.
 4. Start the dev server:
    ```bash
