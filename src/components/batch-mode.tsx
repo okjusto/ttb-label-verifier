@@ -354,6 +354,7 @@ function ResultsTable({
             <th className="p-3">Net Contents</th>
             <th className="p-3">Warning</th>
             <th className="p-3">Image Quality</th>
+            <th className="p-3">Time</th>
             <th className="p-3 w-32">Status</th>
           </tr>
         </thead>
