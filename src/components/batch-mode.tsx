@@ -55,10 +55,11 @@ export function BatchMode() {
       if (!files) return;
       const arr = Array.from(files);
       const accepted: BatchItem[] = [];
-      let rejected = 0;
+      const rejections: string[] = [];
       for (const file of arr) {
-        if (!/^image\/(png|jpe?g)$/i.test(file.type) || file.size > MAX_BYTES) {
-          rejected++;
+        const reason = describeBatchRejection(file);
+        if (reason) {
+          rejections.push(`${file.name} (${reason})`);
           continue;
         }
         accepted.push({
@@ -77,16 +78,20 @@ export function BatchMode() {
         }
         return merged;
       });
-      if (rejected > 0) {
+      if (rejections.length > 0) {
+        const preview = rejections.slice(0, 3).join("; ");
+        const extra =
+          rejections.length > 3 ? ` and ${rejections.length - 3} more` : "";
         setGlobalError(
           (prev) =>
             (prev ? prev + " " : "") +
-            `${rejected} file(s) were skipped (not a JPG/PNG under 8 MB).`,
+            `${rejections.length} file(s) skipped — only JPG/PNG under 8 MB are allowed: ${preview}${extra}.`,
         );
       }
     },
     [],
   );
+
 
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
