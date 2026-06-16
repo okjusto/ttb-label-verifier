@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   STATUS_STYLES,
+  formatDuration,
   readFileAsDataUrl,
   verifyLabel,
   warningStatus,
-  type VerifyResult,
+  type TimedVerifyResult,
   type WarningStatus,
 } from "@/lib/verify-label-client";
-import { WarningBlock } from "./single-label-mode";
+import { DurationBadge, WarningBlock } from "./single-label-mode";
 
 const MAX_BYTES = 8 * 1024 * 1024;
 const MAX_FILES = 500;
@@ -20,9 +21,16 @@ type BatchItem = {
   file: File;
   previewUrl: string; // object URL for thumbnail
   status: ItemStatus;
-  result?: VerifyResult;
+  result?: TimedVerifyResult;
   error?: string;
 };
+
+function describeBatchRejection(file: File): string | null {
+  if (!file.type.startsWith("image/")) return "not an image";
+  if (!/^image\/(png|jpe?g)$/i.test(file.type)) return "not JPG/PNG";
+  if (file.size > MAX_BYTES) return "over 8 MB";
+  return null;
+}
 
 export function BatchMode() {
   const [items, setItems] = useState<BatchItem[]>([]);
@@ -47,10 +55,11 @@ export function BatchMode() {
       if (!files) return;
       const arr = Array.from(files);
       const accepted: BatchItem[] = [];
-      let rejected = 0;
+      const rejections: string[] = [];
       for (const file of arr) {
-        if (!/^image\/(png|jpe?g)$/i.test(file.type) || file.size > MAX_BYTES) {
-          rejected++;
+        const reason = describeBatchRejection(file);
+        if (reason) {
+          rejections.push(`${file.name} (${reason})`);
           continue;
         }
         accepted.push({
@@ -69,16 +78,20 @@ export function BatchMode() {
         }
         return merged;
       });
-      if (rejected > 0) {
+      if (rejections.length > 0) {
+        const preview = rejections.slice(0, 3).join("; ");
+        const extra =
+          rejections.length > 3 ? ` and ${rejections.length - 3} more` : "";
         setGlobalError(
           (prev) =>
             (prev ? prev + " " : "") +
-            `${rejected} file(s) were skipped (not a JPG/PNG under 8 MB).`,
+            `${rejections.length} file(s) skipped — only JPG/PNG under 8 MB are allowed: ${preview}${extra}.`,
         );
       }
     },
     [],
   );
+
 
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -154,10 +167,19 @@ export function BatchMode() {
     cancelRef.current = true;
   };
 
-  const completed = items.filter((i) => i.status === "done" || i.status === "error").length;
+  const doneItems = items.filter((i) => i.status === "done");
+  const errorItems = items.filter((i) => i.status === "error");
+  const completed = doneItems.length + errorItems.length;
   const processingNow = items.filter((i) => i.status === "processing").length;
   const total = items.length;
   const progressPct = total === 0 ? 0 : Math.round((completed / total) * 100);
+  const avgMs =
+    doneItems.length > 0
+      ? Math.round(
+          doneItems.reduce((sum, i) => sum + (i.result?.durationMs ?? 0), 0) /
+            doneItems.length,
+        )
+      : 0;
 
   const openItem = items.find((i) => i.id === openItemId) ?? null;
 
@@ -273,12 +295,28 @@ export function BatchMode() {
                 style={{ width: `${progressPct}%` }}
               />
             </div>
-            <div className="mt-2 text-base text-muted-foreground">
-              {completed} of {total} complete ({progressPct}%)
+            <div className="mt-2 flex flex-wrap items-center gap-4 text-base text-muted-foreground">
+              <span>
+                {completed} of {total} complete ({progressPct}%)
+              </span>
+              {doneItems.length > 0 && (
+                <span>
+                  Avg time:{" "}
+                  <strong className={avgMs < 5000 ? "text-success" : "text-warning-foreground"}>
+                    {formatDuration(avgMs)}
+                  </strong>
+                </span>
+              )}
+              {errorItems.length > 0 && (
+                <span className="font-semibold text-destructive">
+                  {errorItems.length} error{errorItems.length === 1 ? "" : "s"} — click a row for details
+                </span>
+              )}
             </div>
           </div>
         </section>
       )}
+
 
       {/* Results table */}
       {items.length > 0 && (
@@ -316,6 +354,7 @@ function ResultsTable({
             <th className="p-3">Net Contents</th>
             <th className="p-3">Warning</th>
             <th className="p-3">Image Quality</th>
+            <th className="p-3">Time</th>
             <th className="p-3 w-32">Status</th>
           </tr>
         </thead>
@@ -375,6 +414,27 @@ function BatchRow({
       <td className="p-3">
         {item.result ? (
           <QualityPill quality={item.result.imageQuality} />
+        ) : (
+          <Dim status={item.status} />
+        )}
+      </td>
+      <td className="p-3 whitespace-nowrap">
+        {item.result ? (
+          <span
+            className={
+              "font-mono text-sm font-semibold " +
+              (item.result.durationMs < 5000
+                ? "text-success"
+                : "text-warning-foreground")
+            }
+            title={
+              item.result.durationMs < 5000
+                ? "Within 5-second target"
+                : "Above 5-second target"
+            }
+          >
+            {formatDuration(item.result.durationMs)}
+          </span>
         ) : (
           <Dim status={item.status} />
         )}
@@ -445,19 +505,25 @@ function DetailModal({
   item: BatchItem;
   onClose: () => void;
 }) {
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    closeBtnRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      opener?.focus?.();
+    };
   }, [onClose]);
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Label details"
+      aria-labelledby="detail-modal-title"
       className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 p-4 overflow-y-auto"
       onClick={onClose}
     >
@@ -466,10 +532,17 @@ function DetailModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3 border-b-2 border-border p-4">
-          <h2 className="text-2xl font-bold truncate">{item.file.name}</h2>
+          <div className="flex items-center gap-3 min-w-0">
+            <h2 id="detail-modal-title" className="text-2xl font-bold truncate">
+              {item.file.name}
+            </h2>
+            {item.result && <DurationBadge ms={item.result.durationMs} />}
+          </div>
           <button
+            ref={closeBtnRef}
             type="button"
             onClick={onClose}
+            aria-label="Close details"
             className="rounded-md border-2 border-border bg-background px-4 py-2 text-base font-semibold hover:bg-accent focus:outline-none focus:ring-4 focus:ring-ring focus:ring-offset-2"
           >
             Close
@@ -500,7 +573,7 @@ function DetailModal({
   );
 }
 
-function DetailBody({ result }: { result: VerifyResult }) {
+function DetailBody({ result }: { result: TimedVerifyResult }) {
   if (result.imageQuality === "unreadable") {
     return (
       <div className="rounded-lg border-4 border-destructive bg-destructive/10 p-4 text-destructive font-semibold">

@@ -1,16 +1,32 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FIELD_DEFS,
   STATUS_STYLES,
   compareField,
+  formatDuration,
   readFileAsDataUrl,
   verifyLabel,
   warningStatus,
   type FormState,
+  type TimedVerifyResult,
   type VerifyResult,
 } from "@/lib/verify-label-client";
 
 const MAX_BYTES = 8 * 1024 * 1024;
+
+function describeFileError(file: File): string | null {
+  if (!file.type.startsWith("image/")) {
+    return `"${file.name}" is not an image file. Please choose a JPG or PNG.`;
+  }
+  if (!/^image\/(png|jpe?g)$/i.test(file.type)) {
+    return `"${file.name}" is a ${file.type.replace("image/", "").toUpperCase()} image. Please use JPG or PNG instead.`;
+  }
+  if (file.size > MAX_BYTES) {
+    const mb = (file.size / (1024 * 1024)).toFixed(1);
+    return `"${file.name}" is ${mb} MB — too large. Please use an image under 8 MB.`;
+  }
+  return null;
+}
 
 export function SingleLabelMode() {
   const [form, setForm] = useState<FormState>({
@@ -24,8 +40,9 @@ export function SingleLabelMode() {
   const [dragOver, setDragOver] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<VerifyResult | null>(null);
+  const [result, setResult] = useState<TimedVerifyResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
 
   const handleField = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
@@ -34,17 +51,18 @@ export function SingleLabelMode() {
     setError(null);
     const file = files?.[0];
     if (!file) return;
-    if (!/^image\/(png|jpe?g)$/i.test(file.type)) {
-      setError("Please choose a JPG or PNG image.");
+    const issue = describeFileError(file);
+    if (issue) {
+      setError(issue);
       return;
     }
-    if (file.size > MAX_BYTES) {
-      setError("Image is too large. Please use an image under 8 MB.");
-      return;
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      setImageFile(file);
+      setImagePreview(dataUrl);
+    } catch {
+      setError("Could not read that file. Please try a different image.");
     }
-    const dataUrl = await readFileAsDataUrl(file);
-    setImageFile(file);
-    setImagePreview(dataUrl);
   }, []);
 
   const onDrop = (e: React.DragEvent) => {
@@ -80,6 +98,13 @@ export function SingleLabelMode() {
       setSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    if (result && resultsHeadingRef.current) {
+      resultsHeadingRef.current.focus();
+    }
+  }, [result]);
+
 
   return (
     <div className="space-y-8">
@@ -215,21 +240,34 @@ export function SingleLabelMode() {
       <section
         aria-labelledby="results-heading"
         aria-live="polite"
+        aria-busy={submitting}
         className="rounded-lg border-2 border-border bg-card p-6 min-h-[160px]"
       >
-        <h2 id="results-heading" className="text-2xl font-bold mb-4">
-          Verification Results
-        </h2>
+        <div className="flex flex-wrap items-baseline justify-between gap-3 mb-4">
+          <h2
+            id="results-heading"
+            ref={resultsHeadingRef}
+            tabIndex={-1}
+            className="text-2xl font-bold focus:outline-none focus:ring-4 focus:ring-ring rounded"
+          >
+            Verification Results
+          </h2>
+          {result && <DurationBadge ms={result.durationMs} />}
+        </div>
         {!result && !submitting && (
           <p className="text-lg text-muted-foreground">
             Results will appear here after you click <strong>Verify Label</strong>.
           </p>
         )}
         {submitting && (
-          <p className="text-lg">Analyzing label image. This may take a few seconds…</p>
+          <p className="text-lg" role="status">
+            <span className="inline-block h-3 w-3 mr-2 rounded-full bg-primary animate-pulse" aria-hidden="true" />
+            Analyzing label image. This usually takes 2–5 seconds…
+          </p>
         )}
         {result && <SingleLabelResult result={result} submitted={form} />}
       </section>
+
     </div>
   );
 }
@@ -417,5 +455,23 @@ function CheckLine({ ok, label }: { ok: boolean; label: string }) {
         <strong>{ok ? "PASS" : "FAIL"}</strong> — {label}
       </span>
     </li>
+  );
+}
+
+export function DurationBadge({ ms }: { ms: number }) {
+  const fast = ms < 5000;
+  return (
+    <span
+      title={fast ? "Within the 5-second performance target" : "Slower than the 5-second target"}
+      className={`inline-flex items-center gap-1.5 rounded-md border-2 px-3 py-1 text-sm font-bold ${
+        fast
+          ? "bg-success/10 text-success border-success"
+          : "bg-warning/10 text-warning-foreground border-warning"
+      }`}
+    >
+      <span aria-hidden="true">⏱</span>
+      <span>{formatDuration(ms)}</span>
+      <span className="sr-only">{fast ? "within performance target" : "above performance target"}</span>
+    </span>
   );
 }
