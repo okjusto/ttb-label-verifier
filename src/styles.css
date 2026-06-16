@@ -74,8 +74,8 @@
   --card-foreground: oklch(0.18 0.02 260);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.18 0.02 260);
-  /* Government navy */
-  --primary: oklch(0.28 0.09 264);
+  /* TTB seal navy */
+  --primary: oklch(0.27 0.11 258);
   --primary-foreground: oklch(0.99 0 0);
   --secondary: oklch(0.96 0.01 250);
   --secondary-foreground: oklch(0.22 0.06 264);

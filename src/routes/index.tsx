@@ -4,6 +4,7 @@ import { Info } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SingleLabelMode } from "@/components/single-label-mode";
 import { BatchMode } from "@/components/batch-mode";
+import ttbSeal from "@/assets/ttb-seal.png.asset.json";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -39,11 +40,20 @@ function LabelVerifierPage() {
 
       <div className="mx-auto max-w-5xl px-4 py-8 md:px-6 md:py-12 flex flex-col gap-6">
         {/* Header */}
-        <header className="rounded-xl bg-primary text-primary-foreground p-8 shadow-lg">
-          <h1 className="text-3xl font-bold tracking-tight">TTB Label Verifier</h1>
-          <p className="mt-2 text-base md:text-lg opacity-90">
-            Verify alcoholic beverage labels against application data for federal compliance.
-          </p>
+        <header className="rounded-xl bg-primary text-primary-foreground p-6 md:p-8 shadow-lg flex items-center gap-5">
+          <img
+            src={ttbSeal.url}
+            alt="Alcohol and Tobacco Tax and Trade Bureau seal"
+            className="h-16 w-16 md:h-20 md:w-20 rounded-md shrink-0 object-contain"
+          />
+          <div className="min-w-0">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+              TTB Label Verifier
+            </h1>
+            <p className="mt-1.5 text-sm md:text-base opacity-90">
+              Verify alcoholic beverage labels against application data for federal compliance.
+            </p>
+          </div>
         </header>
 
         {/* Instructions */}

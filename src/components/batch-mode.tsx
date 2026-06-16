@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Upload, Play, X, Loader2 } from "lucide-react";
+import { Upload, Play, X, Loader2, Layers, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -194,6 +194,29 @@ export function BatchMode() {
 
   return (
     <div className="space-y-6">
+      {/* Intro blurb */}
+      <section
+        aria-labelledby="batch-intro"
+        className="rounded-lg border border-accent bg-accent/60 p-4 flex gap-4 items-start"
+      >
+        <div className="rounded-full bg-primary text-primary-foreground p-1.5 shrink-0">
+          <Layers className="h-4 w-4" aria-hidden="true" />
+        </div>
+        <div className="text-sm text-foreground">
+          <p id="batch-intro" className="font-semibold mb-1">
+            Verify many labels in one pass
+          </p>
+          <p className="text-muted-foreground">
+            Batch mode is built for high-volume reviews — peak-season importer
+            submissions, brand portfolios, or any time you need to clear a stack of
+            labels quickly. Drop in up to {MAX_FILES} JPG or PNG files at once and the
+            tool processes them in parallel, surfacing brand, ABV, net contents,
+            government warning status, and image quality in a single sortable table.
+            Click any row to see the full per-label breakdown.
+          </p>
+        </div>
+      </section>
+
       {/* Upload zone */}
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Upload Labels</h2>

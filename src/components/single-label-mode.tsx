@@ -232,7 +232,7 @@ export function SingleLabelMode() {
           type="button"
           size="lg"
           onClick={onVerify}
-          disabled={submitting}
+          disabled={submitting || !imagePreview}
           className="px-8 font-semibold shadow-md"
         >
           {submitting ? (
@@ -247,6 +247,11 @@ export function SingleLabelMode() {
             </>
           )}
         </Button>
+        {!imagePreview && !submitting && (
+          <p className="text-xs text-muted-foreground">
+            Upload a label image to enable verification.
+          </p>
+        )}
         {error && (
           <Alert variant="destructive" className="max-w-2xl">
             <AlertTitle>Verification couldn't run</AlertTitle>
